@@ -1,0 +1,15 @@
+{
+  "api": "GET /api/storage/hello",
+  "cases": [
+    {
+      "name": "hello 正常返回 status=0 + module/version 字段",
+      "kind": "http",
+      "actor": "anonymous",
+      "expect_status": 200,
+      "expect_field": {
+        "status": 0,
+        "data.module": "storage"
+      }
+    }
+  ]
+}

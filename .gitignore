@@ -1,0 +1,23 @@
+# 编译产物（不要 commit；提示词也要求 AI 跑完 build 后清理物理文件）
+*.so
+*.dylib
+*.dll
+*.exe
+*.test
+*.out
+*.bin
+
+# Go 测试覆盖率
+coverage.out
+coverage.html
+
+# 临时文件
+tmp/
+*.tmp
+*.log
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+.gitnexus

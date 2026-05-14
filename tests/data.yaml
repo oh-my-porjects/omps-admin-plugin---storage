@@ -1,0 +1,38 @@
+# 测试数据声明 —— 平台从这份声明派生种子/清理/快照三段 SQL
+#
+# ⚠️ 必填：tables 为空时本模块部署后会被"测试资产部署后校验"挡下，需求停在 deploy 阶段。
+#
+# 字段说明：
+#   range_tag       测试范围前缀，{req_id} 由平台运行时替换为实际需求 ID
+#   noise_fields    副作用对比时忽略的字段（除平台默认通用噪音外的额外字段）
+#   tables          每张涉及测试的表一段；列出顺序决定清理删除顺序（反序）
+#
+# 派生规则：
+#   - 种子 SQL：每条 seed_data → INSERT ... ON CONFLICT (primary_key) DO UPDATE ... RETURNING *
+#   - 清理 SQL：DELETE FROM <table> WHERE <range_filter> RETURNING *
+#   - 快照 SQL（计数）：SELECT COUNT(*) FROM <table> WHERE <range_filter>
+#   - 快照 SQL（明细）：SELECT <snapshot_view> FROM <table> WHERE <range_filter> LIMIT 100
+#
+# 详见 prompts/test-assets-gen.md
+
+range_tag: "test_req{req_id}_"
+
+noise_fields: []
+
+# tables 必须声明本模块"真实存在的"数据表（admin-server 部署后会逐表 INSERT 验证）。
+# 模板默认留空 {} —— AI 写代码时**必须**根据 storage.go / migrations 里实际 CREATE TABLE
+# 的表替换成完整声明；漏填会被部署后校验阻塞，且会被"tables 与代码 CREATE TABLE 一致性
+# 检查"挡下，不会让需求误进入下一阶段。
+#
+# 单表声明示例（删掉花括号 {} 后填写）：
+#
+# tables:
+#   <你的真实表名>:
+#     primary_key: id
+#     range_filter: "id LIKE '{range_tag}%'"
+#     snapshot_view: [id, name, created_at]
+#     snapshot_summary: "id, name"
+#     seed_data:
+#       - {id: "{range_tag}001", name: "示例 1", created_at: "now()"}
+#       - {id: "{range_tag}002", name: "示例 2", created_at: "now()"}
+tables: {}

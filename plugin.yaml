@@ -1,0 +1,46 @@
+# 模块元数据
+# name: 模块名称，必须与 Name() 返回值一致
+# description: 模块描述
+# 注：版本号由 admin-server 在编译期通过 ldflags 注入到 .so 二进制，模块作者无需在此声明
+name: "storage"
+description: "存储公共模块"
+
+# 模块需要的环境变量声明（重要，AI 必须填写）
+#
+# 平台行为：
+#   1. 编译模块时把声明写入 modules.required_env_vars
+#   2. 自动同步 key + 说明到 项目→环境→模块环境变量 配置（仅占位，不动用户填的值）
+#   3. 推送上线前检查：required=true 的变量缺值会拦截推送 + TG 提醒
+#   4. runtime 加载模块前再做一次兜底检查
+#
+# 字段说明：
+#   key:       环境变量名，业务代码用 ctx.Config["KEY"] 读取（不要用 os.Getenv！）
+#   desc:      用途说明（必填，给配置环境变量的人看）
+#   required:  true=缺值就拒绝推送上线；false=可选（建议填默认值兜底）
+#   sensitive: true=值在 UI 上脱敏显示（密钥/密码等）
+#   default:   默认值（required=false 时建议填，避免代码里硬编码）
+#
+# 读取约束（重要）：
+#   模块代码里读环境变量必须用 PluginContext.Config[KEY]，**不允许** os.Getenv()
+#   原因：runtime 注入时给 OS env vars 加了 MODULE_<NAME>_ 前缀防冲突，模块直接
+#   os.Getenv("KEY") 拿不到值；ctx.Config 已经被 runtime 剥过前缀
+#
+# AI 约束：业务代码里所有 ctx.Config["X"] 调用都必须在这里声明，除了平台已注入的
+# 系统变量：PROJECT_ID / PROJECT_NAME / ENV / CONSUL_ADDR / RUNTIME_ADDR /
+#         DB_HOST_LAN / DB_HOST_WG / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME /
+#         REDIS_HOST_LAN / REDIS_HOST_WG / REDIS_PORT / REDIS_PASSWORD /
+#         ADMIN_API_KEY / ADMIN_PREFIX
+env_vars: []
+# 示例（删掉上面 [] 替换成下面这样）：
+# env_vars:
+#   - key: USER_TOKEN_SECRET
+#     desc: 用户 token 签名密钥（JWT 签名用，建议 32 位以上随机字符串）
+#     required: true
+#     sensitive: true
+#   - key: USER_TOKEN_TTL_SECONDS
+#     desc: 用户 token 有效期（秒）
+#     required: false
+#     default: "86400"
+
+# 平台公共模块标记 (task/inner_plugin.md §4.1)
+kind: builtin

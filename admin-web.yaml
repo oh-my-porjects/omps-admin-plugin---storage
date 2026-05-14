@@ -1,0 +1,52 @@
+# admin-web.yaml — 模块管理后台描述种子文件
+#
+# 协议：作者只写「主观意图」（菜单/统计/角色/高危），不写完整视图配置。
+# 平台 admin-server 部署后自动调 AI 生成器（cli-server → Claude/Codex CLI）：
+#   - 读本文件 + 模块构建产物里的 api-docs.json（接口元数据）+ 当前提示词版本
+#   - 生成完整 admin Spec：menus / views(table/detail/stats/chart/form) / actions
+#   - 落 module_admin_specs 表，runtime 30s 一次同步到内存缓存
+#   - 项目级管理后台前端按 spec 自动渲染左侧菜单 + 主区视图
+#
+# 重新生成：管理后台 EnvDetail → Admin UI Spec 状态 → 行级"重生"按钮，或环境级"全量重新生成"
+# 版本管理：每次生成都会新建 version；红橙黄状态会提示提示词/模块版本错位
+# 高危操作：dangerous 里声明的接口在生成 spec 时 action.danger=true，前端强制二次确认+审计
+#
+# ── 完整样例（accounts 模块风格，模块作者照着改）──
+
+module: "storage"
+
+menus:
+  - key: list                              # 菜单 key（前端路由/spec.views[].key 都用它）
+    title: 数据列表                          # 菜单标题
+    icon: cube                             # 图标 hint，前端目前不强校验
+    roles: [admin, operator]               # 哪些角色能看到这个菜单（空数组=所有人）
+    key_fields: [id, name, status, created_at]  # 告诉 AI "列表里优先展示这些字段"
+    notes: 列表页要支持按 status 筛选、按 name 关键字搜索；行操作含"查看详情"和"封禁"
+  - key: detail
+    title: 详情
+    roles: [admin, operator]
+    key_fields: [id, name, status, banned_reason, created_at]
+    notes: 详情页嵌入 audit_log.list 子视图显示该用户的审计流水（跨模块引用）
+
+stats:
+  - key: total                             # 项目首页统计卡
+    title: 总数
+    api: "GET /admin/list"                 # endpoint_key 格式 METHOD /path
+    refresh: 60                            # 秒，刷新间隔
+  - key: active_today
+    title: 今日活跃
+    api: "GET /admin/stats/active-today"
+    refresh: 30
+
+roles:                                     # 本模块用到的角色，AI 生成 permissions 时引用
+  - code: admin
+    title: 管理员
+    desc: 全部权限
+  - code: operator
+    title: 运营
+    desc: 只读 + 单条记录修改，不能批量
+
+dangerous:                                 # endpoint_key 列表；生成 spec 时 action.danger=true
+  - "POST /admin/{id}/ban"
+  - "DELETE /admin/{id}"
+  - "POST /admin/batch-delete"
