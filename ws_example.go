@@ -30,7 +30,7 @@ import (
 //
 // 调用 Plugin.ctxPush 即可——必送达进入 ws_outbox 表，离线用户上线后补发。
 
-func (p *TemplatePlugin) sendFriendRequest(ctx context.Context, fromUserID, toUserID, note string) error {
+func (p *StoragePlugin) sendFriendRequest(ctx context.Context, fromUserID, toUserID, note string) error {
 	// 1. 写库（业务自己做）
 	// _, err := p.db.ExecContext(ctx, "INSERT INTO friend_requests ...")
 
@@ -49,7 +49,7 @@ func (p *TemplatePlugin) sendFriendRequest(ctx context.Context, fromUserID, toUs
 // 示例 2：尽力而为推送（聊天打字中等实时性强、丢失无所谓的场景）
 // ============================================================================
 
-func (p *TemplatePlugin) handleTypingNotice(w http.ResponseWriter, r *http.Request) {
+func (p *StoragePlugin) handleTypingNotice(w http.ResponseWriter, r *http.Request) {
 	fromUserID := getUserID(r)
 	toUserID := r.URL.Query().Get("to")
 	if fromUserID == "" || toUserID == "" {
@@ -72,7 +72,7 @@ func (p *TemplatePlugin) handleTypingNotice(w http.ResponseWriter, r *http.Reque
 //
 // 把下面三个回调改成你自己的实现（查 sessions 表 / 校验 JWT / 调外部鉴权服务都可以）
 
-func (p *TemplatePlugin) registerAuthIfLoginModule(ctx PluginContext) {
+func (p *StoragePlugin) registerAuthIfLoginModule(ctx PluginContext) {
 	if ctx.RegisterAuth == nil {
 		return // 老 runtime 没有这个能力，不阻塞模块加载
 	}
@@ -104,9 +104,9 @@ func (p *TemplatePlugin) registerAuthIfLoginModule(ctx PluginContext) {
 // 把推送 API 缓存到 plugin 实例字段，方便业务函数取用
 // ============================================================================
 //
-// 在你的 TemplatePlugin struct 里加这些字段，并在 Init 里赋值：
+// 在你的 StoragePlugin struct 里加这些字段，并在 Init 里赋值：
 //
-//   type TemplatePlugin struct {
+//   type StoragePlugin struct {
 //       // ...原有字段
 //       push      func(ctx context.Context, userID, code string, data any) (int64, error)
 //       emit      func(userID, code string, data any) bool
@@ -114,7 +114,7 @@ func (p *TemplatePlugin) registerAuthIfLoginModule(ctx PluginContext) {
 //       isOnline  func(userID string) bool
 //   }
 //
-//   func (p *TemplatePlugin) Init(ctx PluginContext) error {
+//   func (p *StoragePlugin) Init(ctx PluginContext) error {
 //       // ...原有初始化
 //       p.push = ctx.Push
 //       p.emit = ctx.Emit
