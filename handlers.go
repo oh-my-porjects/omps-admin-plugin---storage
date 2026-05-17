@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
@@ -264,17 +263,28 @@ func resourceDetail(res storageResource) map[string]any {
 	return item
 }
 
-func newUUID() string {
-	var b [16]byte
+// newUUID 保留旧名字（调用方未改），实际生成 12 字符 base62 短 ID
+func newUUID() string { return newShortID() }
+
+// newShortID 应用层备用 ID 生成（生产路径走 PG generate_short_id() 默认值）
+// 12 字符 base62, crypto/rand 加密随机
+func newShortID() string {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	var b [12]byte
 	if _, err := rand.Read(b[:]); err != nil {
+		// fallback：time-based (单元测试 / 极端场景)
 		now := time.Now().UnixNano()
-		return "00000000-0000-4000-8000-" + strconv.FormatInt(now, 16)
+		for i := range b {
+			b[i] = chars[now%62]
+			now /= 62
+			if now == 0 {
+				now = time.Now().UnixNano() + int64(i)
+			}
+		}
+		return string(b[:])
 	}
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return hex.EncodeToString(b[0:4]) + "-" +
-		hex.EncodeToString(b[4:6]) + "-" +
-		hex.EncodeToString(b[6:8]) + "-" +
-		hex.EncodeToString(b[8:10]) + "-" +
-		hex.EncodeToString(b[10:16])
+	for i := range b {
+		b[i] = chars[int(b[i])%62]
+	}
+	return string(b[:])
 }

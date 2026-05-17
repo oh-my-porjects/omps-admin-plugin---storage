@@ -54,8 +54,8 @@ func (p *StoragePlugin) ensureSchema(ctx context.Context) error {
 	}
 	_, err := p.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS storage_resources (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			user_id UUID,
+			id TEXT PRIMARY KEY DEFAULT generate_short_id(),
+			user_id TEXT,
 			feature TEXT NOT NULL,
 			business_object_type TEXT NOT NULL DEFAULT '',
 			business_object_id TEXT NOT NULL DEFAULT '',
@@ -89,8 +89,8 @@ func (p *StoragePlugin) insertResource(ctx context.Context, res storageResource)
 			INSERT INTO storage_resources
 				(id, user_id, feature, business_object_type, business_object_id, original_filename, file_ext, mime_type,
 				 file_size_bytes, storage_key, public_url, status, uploaded_at, created_at, updated_at)
-			VALUES ($1, NULLIF($2, '')::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $13)
-			RETURNING id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $13)
+			RETURNING id, COALESCE(user_id, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at`,
 			res.ID, res.UserID, res.Feature, res.BusinessObjectType, res.BusinessObjectID, res.OriginalFilename, res.FileExt,
@@ -112,7 +112,7 @@ func (p *StoragePlugin) listResources(ctx context.Context, filter resourceListFi
 		}
 		args = append(args, filter.PageSize, (filter.Page-1)*filter.PageSize)
 		rows, err := p.db.QueryContext(ctx, `
-			SELECT id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			SELECT id, COALESCE(user_id, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at
 			FROM storage_resources WHERE `+where+`
@@ -158,7 +158,7 @@ func (p *StoragePlugin) listResources(ctx context.Context, filter resourceListFi
 func (p *StoragePlugin) getResource(ctx context.Context, id string) (storageResource, error) {
 	if p.db != nil {
 		row := p.db.QueryRowContext(ctx, `
-			SELECT id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			SELECT id, COALESCE(user_id, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at
 			FROM storage_resources WHERE id=$1`, id)
@@ -196,8 +196,8 @@ func (p *StoragePlugin) bindResource(ctx context.Context, resourceID, userID, ob
 		}
 		row := p.db.QueryRowContext(ctx, `
 			UPDATE storage_resources SET business_object_type=$2, business_object_id=$3, updated_at=now()
-			WHERE id=$1 AND status='normal' AND (user_id IS NULL OR user_id::text=$4)
-			RETURNING id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			WHERE id=$1 AND status='normal' AND (user_id IS NULL OR user_id=$4)
+			RETURNING id, COALESCE(user_id, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at`,
 			resourceID, objectType, objectID, userID)
@@ -236,11 +236,11 @@ func (p *StoragePlugin) checkRechargeVoucherBinding(ctx context.Context, resourc
 	err := p.db.QueryRowContext(ctx, `
 		SELECT EXISTS (
 				SELECT 1 FROM storage_resources target
-				WHERE target.id=$1 AND target.status=$2 AND target.feature=$3 AND (target.user_id IS NULL OR target.user_id::text=$4)
+				WHERE target.id=$1 AND target.status=$2 AND target.feature=$3 AND (target.user_id IS NULL OR target.user_id=$4)
 			),
 			EXISTS (
 				SELECT 1 FROM storage_resources target
-				WHERE target.id=$1 AND target.status=$2 AND target.feature=$3 AND (target.user_id IS NULL OR target.user_id::text=$4)
+				WHERE target.id=$1 AND target.status=$2 AND target.feature=$3 AND (target.user_id IS NULL OR target.user_id=$4)
 					AND EXISTS (
 						SELECT 1 FROM storage_resources existing
 						WHERE existing.id<>target.id AND existing.feature=$3 AND existing.business_object_type=$5
@@ -257,7 +257,7 @@ func (p *StoragePlugin) softDeleteResource(ctx context.Context, resourceID strin
 		row := p.db.QueryRowContext(ctx, `
 			UPDATE storage_resources SET status='deleted', deleted_at=$2, updated_at=$2
 			WHERE id=$1 AND status='normal'
-			RETURNING id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			RETURNING id, COALESCE(user_id, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at`, resourceID, now)
 		res, err := scanResource(row)
@@ -304,7 +304,7 @@ func buildResourceWhere(filter resourceListFilter) (string, []any) {
 		where = append(where, strings.ReplaceAll(clause, "?", "$"+strconv.Itoa(len(args))))
 	}
 	if filter.UserID != "" {
-		add("user_id::text=?", filter.UserID)
+		add("user_id=?", filter.UserID)
 	}
 	if filter.Feature != "" {
 		add("feature=?", filter.Feature)

@@ -21,9 +21,10 @@ const (
 
 var (
 	errR2ConfigMissing = errors.New("r2 config missing")
-	uuidRE             = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-	tokenRE            = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,100}$`)
-	envRE              = regexp.MustCompile(`^[A-Za-z0-9_-]{1,32}$`)
+	// 平台短 ID 标准 12 字符 base62
+	shortIDRE = regexp.MustCompile(`^[A-Za-z0-9]{12}$`)
+	tokenRE   = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,100}$`)
+	envRE     = regexp.MustCompile(`^[A-Za-z0-9_-]{1,32}$`)
 )
 
 type storageConfig struct {
@@ -106,9 +107,13 @@ func validateStatus(status string) bool {
 	return status == "" || status == statusNormal || status == statusDeleted || status == statusCleaned
 }
 
-func validateUUID(v string) bool {
-	return uuidRE.MatchString(v)
+// validateShortID 校验 12 字符 base62 ID 格式
+func validateShortID(v string) bool {
+	return shortIDRE.MatchString(v)
 }
+
+// validateUUID 保留作为 validateShortID 别名（兼容旧调用）
+func validateUUID(v string) bool { return validateShortID(v) }
 
 func formatTimePtr(t *time.Time) string {
 	if t == nil || t.IsZero() {
