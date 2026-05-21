@@ -67,9 +67,9 @@ import (
 //   - Redis / Cache / RedisClient：没有这些字段，写了直接 build fail。
 //     模块要用 Redis 时自己 import "github.com/redis/go-redis/v9"，连接信息
 //     从 ctx.Config 拿（平台注入的系统变量）：
-//       host := ctx.Config["REDIS_HOST_LAN"]   // 同机房优先，跨机房用 REDIS_HOST_WG
-//       port := ctx.Config["REDIS_PORT"]
-//       pwd  := ctx.Config["REDIS_PASSWORD"]   // 可能为空
+//     host := ctx.Config["REDIS_HOST_LAN"]   // 同机房优先，跨机房用 REDIS_HOST_WG
+//     port := ctx.Config["REDIS_PORT"]
+//     pwd  := ctx.Config["REDIS_PASSWORD"]   // 可能为空
 //     不需要在 plugin.yaml env_vars 声明（这些是平台注入的系统变量）。
 //   - HTTPClient / Tracer / Metrics：没有这些字段，自己用标准库 / OTel SDK 起。
 //   - 想加新字段必须先改 runtime/internal/plugin/interface.go 让平台同步注入，
@@ -129,7 +129,10 @@ var Plugin = &StoragePlugin{}
 // ServeHTTP 或内部 mux，多个插件之间会互相拦截请求导致 404。
 var Routes = map[string]http.HandlerFunc{
 	// 前台接口示例（以 /api/ 开头）
-	"GET /api/storage/hello": handleHello,
+	"GET /api/storage/hello":           handleHello,
+	"GET /api/storage/resource-list":   handleResourceList,
+	"GET /api/storage/resource-detail": handleResourceDetail,
+	"POST /api/storage/upload":         handleUpload,
 	// 后台管理接口示例（以 /{admin_prefix}/api/ 开头，部署时替换为项目 UUID）
 	"POST /{admin_prefix}/api/storage/admin/ping": handleAdminPing,
 	// 注：内部自测端点 POST /_internal/selftest 由 selftest.go 在 init() 时
@@ -143,6 +146,18 @@ func handleHello(w http.ResponseWriter, r *http.Request) {
 
 func handleAdminPing(w http.ResponseWriter, r *http.Request) {
 	Plugin.handleAdminPing(w, r)
+}
+
+func handleUpload(w http.ResponseWriter, r *http.Request) {
+	Plugin.handleUpload(w, r)
+}
+
+func handleResourceList(w http.ResponseWriter, r *http.Request) {
+	Plugin.handleResourceList(w, r)
+}
+
+func handleResourceDetail(w http.ResponseWriter, r *http.Request) {
+	Plugin.handleResourceDetail(w, r)
 }
 
 // StoragePlugin 实现 GamePlugin 接口

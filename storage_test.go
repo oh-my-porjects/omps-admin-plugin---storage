@@ -39,9 +39,7 @@ func testPlugin() *StoragePlugin {
 				Header:     make(http.Header),
 			}, nil
 		})},
-		memory:        map[string]storageResource{},
-		adminAPIKey:   "test-admin-key",
-		internalToken: "test-token",
+		memory: map[string]storageResource{},
 	}
 }
 
@@ -81,7 +79,7 @@ func TestHandleUploadRejectsInvalidBusinessObjectType(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodPost, "/api/storage/upload", body)
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("X-User-ID", "00000000-0000-4000-8000-000000009006")
+	req.Header.Set("X-User-ID", "User00009006")
 	rec := httptest.NewRecorder()
 	plugin.handleUpload(rec, req)
 	assertBusinessStatus(t, rec, 8005)
@@ -129,7 +127,7 @@ func TestHandleUploadSuccess(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodPost, "/api/storage/upload", body)
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("X-User-ID", "00000000-0000-4000-8000-000000000001")
+	req.Header.Set("X-User-ID", "User00000001")
 	// multipart 字段必须写在 body 中，重建请求便于同时带文件和字段。
 	body, contentType, err = multipartBody(map[string]string{"feature": "recharge_voucher"}, "voucher.jpg", sampleJPEG())
 	if err != nil {
@@ -137,7 +135,7 @@ func TestHandleUploadSuccess(t *testing.T) {
 	}
 	req = httptest.NewRequest(http.MethodPost, "/api/storage/upload", body)
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("X-User-ID", "00000000-0000-4000-8000-000000000001")
+	req.Header.Set("X-User-ID", "User00000001")
 	rec := httptest.NewRecorder()
 	plugin.handleUpload(rec, req)
 	assertBusinessStatus(t, rec, 0)
@@ -150,8 +148,8 @@ func TestResourceListAndDetail(t *testing.T) {
 	plugin := testPlugin()
 	now := time.Now().UTC()
 	res := storageResource{
-		ID:               "00000000-0000-4000-8000-000000000101",
-		UserID:           "00000000-0000-4000-8000-000000000001",
+		ID:               "Res000000101",
+		UserID:           "User00000001",
 		Feature:          "recharge_voucher",
 		OriginalFilename: "voucher.jpg",
 		FileExt:          "jpg",
@@ -210,29 +208,23 @@ func TestResourceListAcceptsNonSystemBusinessObjectTypeFilter(t *testing.T) {
 	}
 }
 
-func TestHandleSelftestExecutesCases(t *testing.T) {
+func TestHandleSelftestReportsDeprecatedEndpoint(t *testing.T) {
 	t.Setenv("RUNTIME_INTERNAL_TOKEN", "test-token")
 	Plugin = testPlugin()
 	req := httptest.NewRequest(http.MethodPost, "/_internal/selftest/storage", nil)
 	req.Header.Set("X-Internal-Token", "test-token")
 	rec := httptest.NewRecorder()
 	handleSelftestInternal(rec, req)
-	assertBusinessStatus(t, rec, 0)
+	assertBusinessStatus(t, rec, 1)
 
 	var resp struct {
-		Data struct {
-			Total  int `json:"total"`
-			Failed int `json:"failed"`
-		} `json:"data"`
+		Msg string `json:"msg"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("响应 JSON 解析失败: %v", err)
 	}
-	if resp.Data.Total == 0 {
-		t.Fatal("selftest 应执行 tests/*.test.json 用例")
-	}
-	if resp.Data.Failed != 0 {
-		t.Fatalf("selftest failed=%d, body=%s", resp.Data.Failed, rec.Body.String())
+	if !strings.Contains(resp.Msg, "selftest 端点已废弃") {
+		t.Fatalf("msg=%q, want deprecated selftest message", resp.Msg)
 	}
 }
 
@@ -240,8 +232,8 @@ func TestSoftDeleteAndBind(t *testing.T) {
 	plugin := testPlugin()
 	now := time.Now().UTC()
 	res := storageResource{
-		ID:               "00000000-0000-4000-8000-000000000201",
-		UserID:           "00000000-0000-4000-8000-000000000001",
+		ID:               "Res000000201",
+		UserID:           "User00000001",
 		Feature:          "recharge_voucher",
 		OriginalFilename: "voucher.jpg",
 		FileExt:          "jpg",
@@ -275,8 +267,8 @@ func TestBindRechargeOrderRejectsNonVoucherResource(t *testing.T) {
 	plugin := testPlugin()
 	now := time.Now().UTC()
 	res := storageResource{
-		ID:               "00000000-0000-4000-8000-000000000301",
-		UserID:           "00000000-0000-4000-8000-000000000001",
+		ID:               "Res000000301",
+		UserID:           "User00000001",
 		Feature:          "profile_avatar",
 		OriginalFilename: "avatar.jpg",
 		FileExt:          "jpg",

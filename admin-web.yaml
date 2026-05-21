@@ -6,29 +6,26 @@ menus:
     icon: file
     roles: [admin, developer, operator]
     views: [resource_list]
-  - key: monitor
-    title: 存储监控
-    icon: dashboard
-    roles: [admin, developer]
-    views: [storage_monitor]
 views:
   - key: resource_list
     type: table
     title: 资源
-    api: GET /api/storage/list
+    api: GET /api/storage/resource-list
     columns:
-      - field: id
-        title: ID
-      - field: name
+      - field: resource_id
+        title: 资源 ID
+      - field: feature
+        title: 资源类型
+      - field: public_url
         title: 文件名
-      - field: size
+      - field: file_size_bytes
         title: 大小
         render: number
-      - field: mime
+      - field: mime_type
         title: 类型
-      - field: storage_backend
-        title: 存储后端
-      - field: created_at
+      - field: status
+        title: 状态
+      - field: uploaded_at
         title: 上传时间
         render: datetime
     actions:
@@ -36,15 +33,6 @@ views:
         type: page
         title: 上传
         api: POST /api/storage/upload
-      - key: delete
-        type: row
-        title: 删除
-        api: DELETE /api/storage/{id}
-        danger: true
-  - key: storage_monitor
-    type: stats
-    title: 存储监控
-    api: GET /api/storage/stats
 roles:
   - code: admin
     title: 超级管理员
