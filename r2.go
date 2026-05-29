@@ -15,6 +15,36 @@ import (
 	"time"
 )
 
+type r2ObjectError struct {
+	Operation  string
+	StatusCode int
+	Message    string
+	Err        error
+}
+
+func (e *r2ObjectError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.StatusCode > 0 {
+		if e.Message != "" {
+			return fmt.Sprintf("r2 %s status %d: %s", e.Operation, e.StatusCode, e.Message)
+		}
+		return fmt.Sprintf("r2 %s status %d", e.Operation, e.StatusCode)
+	}
+	if e.Err != nil {
+		return fmt.Sprintf("r2 %s failed: %v", e.Operation, e.Err)
+	}
+	return fmt.Sprintf("r2 %s failed", e.Operation)
+}
+
+func (e *r2ObjectError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
 func buildStorageKey(environment, feature, ownerID, resourceID, ext string, now time.Time) string {
 	if ownerID == "" {
 		ownerID = systemOwner
@@ -49,12 +79,16 @@ func (p *StoragePlugin) putR2Object(ctx context.Context, storageKey, mimeType st
 	signR2Request(req, p.cfg, content)
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return err
+		return &r2ObjectError{Operation: "put", Err: err}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("r2 put status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return &r2ObjectError{
+			Operation:  "put",
+			StatusCode: resp.StatusCode,
+			Message:    strings.TrimSpace(string(body)),
+		}
 	}
 	return nil
 }

@@ -63,6 +63,7 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, 8006, nil, "R2 存储配置缺失或不可用")
 				return
 			}
+			p.logR2UploadFailure(err, feature, payload.MimeType, payload.SizeBytes)
 			writeJSON(w, 8007, nil, "上传 R2 失败")
 			return
 		}
@@ -90,6 +91,27 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 0, uploadResponse(saved), "")
+}
+
+func (p *StoragePlugin) logR2UploadFailure(err error, feature, mimeType string, fileSize int64) {
+	if p == nil || p.logger == nil {
+		return
+	}
+	args := []any{
+		"feature", feature,
+		"mime_type", mimeType,
+		"file_size_bytes", fileSize,
+		"err", err.Error(),
+	}
+	var r2Err *r2ObjectError
+	if errors.As(err, &r2Err) {
+		args = append(args,
+			"r2_operation", r2Err.Operation,
+			"r2_status", r2Err.StatusCode,
+			"r2_message", r2Err.Message,
+		)
+	}
+	p.logger.Warn("storage_upload_r2_failed", args...)
 }
 
 func uploadOwnerID(r *http.Request) string {

@@ -172,6 +172,25 @@ func TestHandleUploadRejectsInvalidUserWithoutAdminProxy(t *testing.T) {
 	assertBusinessStatus(t, rec, 8001)
 }
 
+func TestPutR2ObjectReturnsStatusError(t *testing.T) {
+	plugin := testPlugin()
+	plugin.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 403,
+			Body:       io.NopCloser(strings.NewReader("<Error><Code>AccessDenied</Code></Error>")),
+			Header:     make(http.Header),
+		}, nil
+	})}
+	err := plugin.putR2Object(context.Background(), "dev/recharge_voucher/system/res.jpg", "image/jpeg", sampleJPEG())
+	var r2Err *r2ObjectError
+	if !errors.As(err, &r2Err) {
+		t.Fatalf("err=%T %v, want *r2ObjectError", err, err)
+	}
+	if r2Err.Operation != "put" || r2Err.StatusCode != 403 || !strings.Contains(r2Err.Message, "AccessDenied") {
+		t.Fatalf("r2Err=%+v, want put status 403 AccessDenied", r2Err)
+	}
+}
+
 func TestHandleUploadSuccess(t *testing.T) {
 	plugin := testPlugin()
 	body, contentType, err := newMultipartRequestBody("file", "voucher.jpg", sampleJPEG())
