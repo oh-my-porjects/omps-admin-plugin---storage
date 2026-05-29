@@ -33,6 +33,27 @@ views:
         type: page
         title: 上传
         api: POST /api/storage/upload
+        fields:
+          - field: file
+            title: 图片文件
+            type: file
+            required: true
+          - field: feature
+            title: 资源用途
+            type: enum
+            required: true
+            default: recharge_voucher
+            enum:
+              recharge_voucher: 充值凭证
+          - field: business_object_type
+            title: 业务对象类型
+            type: enum
+            enum:
+              recharge_order: 充值订单
+              user_profile: 用户资料
+          - field: business_object_id
+            title: 业务对象 ID
+            type: string
 roles:
   - code: admin
     title: 超级管理员
