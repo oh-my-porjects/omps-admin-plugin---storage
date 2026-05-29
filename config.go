@@ -46,9 +46,17 @@ func loadStorageConfig(cfg map[string]string) storageConfig {
 		AccessKeyID:   strings.TrimSpace(cfg["STORAGE_R2_ACCESS_KEY_ID"]),
 		SecretKey:     strings.TrimSpace(cfg["STORAGE_R2_SECRET_ACCESS_KEY"]),
 		Bucket:        strings.TrimSpace(cfg["STORAGE_R2_BUCKET"]),
-		PublicBaseURL: strings.TrimRight(strings.TrimSpace(cfg["STORAGE_R2_PUBLIC_BASE_URL"]), "/"),
+		PublicBaseURL: normalizePublicBaseURL(cfg["STORAGE_R2_PUBLIC_BASE_URL"]),
 		Environment:   env,
 	}
+}
+
+func normalizePublicBaseURL(raw string) string {
+	v := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if v == "" || strings.Contains(v, "://") {
+		return v
+	}
+	return "https://" + v
 }
 
 func (c storageConfig) validForUpload() bool {

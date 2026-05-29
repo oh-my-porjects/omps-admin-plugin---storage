@@ -67,6 +67,22 @@ func TestValidateBusinessObject(t *testing.T) {
 	}
 }
 
+func TestLoadStorageConfigNormalizesPublicBaseURL(t *testing.T) {
+	cfg := loadStorageConfig(map[string]string{
+		"STORAGE_R2_ACCOUNT_ID":        "account",
+		"STORAGE_R2_ACCESS_KEY_ID":     "access",
+		"STORAGE_R2_SECRET_ACCESS_KEY": "secret",
+		"STORAGE_R2_BUCKET":            "bucket",
+		"STORAGE_R2_PUBLIC_BASE_URL":   "cdn.example.com/",
+	})
+	if cfg.PublicBaseURL != "https://cdn.example.com" {
+		t.Fatalf("PublicBaseURL=%q", cfg.PublicBaseURL)
+	}
+	if !cfg.validForUpload() {
+		t.Fatal("裸域名补 https 后应通过上传配置校验")
+	}
+}
+
 func TestHandleUploadRejectsInvalidBusinessObjectType(t *testing.T) {
 	plugin := testPlugin()
 	body, contentType, err := multipartBody(map[string]string{
