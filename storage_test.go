@@ -135,6 +135,43 @@ func TestHandleUploadRequiresLogin(t *testing.T) {
 	assertBusinessStatus(t, rec, 8001)
 }
 
+func TestHandleUploadAllowsAdminProxyAccount(t *testing.T) {
+	plugin := testPlugin()
+	body, contentType, err := multipartBody(map[string]string{"feature": "recharge_voucher"}, "voucher.jpg", sampleJPEG())
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/storage/upload", body)
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("X-User-ID", "cb08ee6a")
+	req.Header.Set("X-Admin-Session-Token", "admin-session")
+	rec := httptest.NewRecorder()
+	plugin.handleUpload(rec, req)
+	assertBusinessStatus(t, rec, 0)
+	if len(plugin.memory) != 1 {
+		t.Fatalf("memory count=%d, want 1", len(plugin.memory))
+	}
+	for _, res := range plugin.memory {
+		if res.UserID != systemOwner {
+			t.Fatalf("user_id=%q, want %q", res.UserID, systemOwner)
+		}
+	}
+}
+
+func TestHandleUploadRejectsInvalidUserWithoutAdminProxy(t *testing.T) {
+	plugin := testPlugin()
+	body, contentType, err := multipartBody(map[string]string{"feature": "recharge_voucher"}, "voucher.jpg", sampleJPEG())
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/storage/upload", body)
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("X-User-ID", "cb08ee6a")
+	rec := httptest.NewRecorder()
+	plugin.handleUpload(rec, req)
+	assertBusinessStatus(t, rec, 8001)
+}
+
 func TestHandleUploadSuccess(t *testing.T) {
 	plugin := testPlugin()
 	body, contentType, err := newMultipartRequestBody("file", "voucher.jpg", sampleJPEG())

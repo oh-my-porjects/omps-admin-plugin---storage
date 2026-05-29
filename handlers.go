@@ -10,8 +10,8 @@ import (
 )
 
 func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
-	userID := strings.TrimSpace(getUserID(r))
-	if userID == "" || !validateUUID(userID) {
+	userID := uploadOwnerID(r)
+	if userID == "" {
 		writeJSON(w, 8001, nil, "未登录或登录态无效")
 		return
 	}
@@ -90,6 +90,23 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 0, uploadResponse(saved), "")
+}
+
+func uploadOwnerID(r *http.Request) string {
+	userID := strings.TrimSpace(getUserID(r))
+	if validateUUID(userID) {
+		return userID
+	}
+	if userID != "" && isAdminProxyRequest(r) {
+		return systemOwner
+	}
+	return ""
+}
+
+func isAdminProxyRequest(r *http.Request) bool {
+	return strings.TrimSpace(r.Header.Get("X-Admin-Session-Token")) != "" ||
+		strings.TrimSpace(r.Header.Get("X-Admin-Token")) != "" ||
+		strings.TrimSpace(r.Header.Get("X-Admin-Role")) != ""
 }
 
 func (p *StoragePlugin) handleResourceList(w http.ResponseWriter, r *http.Request) {
