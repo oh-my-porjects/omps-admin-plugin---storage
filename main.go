@@ -133,7 +133,7 @@ var Routes = map[string]http.HandlerFunc{
 	"GET /api/storage/resource-list":   handleResourceList,
 	"GET /api/storage/resource-detail": handleResourceDetail,
 	"POST /api/storage/upload":         handleUpload,
-	// 后台管理接口示例（直接声明真实字面量路径）
+	// 后台管理接口示例（以 /api/ 开头，部署时替换为项目 UUID）
 	"POST /api/storage/admin/ping": handleAdminPing,
 	// 注：内部自测端点 POST /_internal/selftest 由 selftest.go 在 init() 时
 	// 注册进来，避免 var Routes 初始化循环依赖（selftest 需要回查 Routes）
