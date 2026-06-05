@@ -1,3 +1,4 @@
+$schema: admin-web-spec/v2
 module: storage
 module_title: 文件存储
 menus:
@@ -11,11 +12,78 @@ views:
     type: table
     title: 资源
     api: GET /api/storage/resource-list
+    request:
+      query:
+        - param: user_id
+          source: filter
+          key: user_id
+          transform: trim
+        - param: feature
+          source: filter
+          key: feature
+          transform: identity
+        - param: business_object_type
+          source: filter
+          key: business_object_type
+          transform: identity
+        - param: business_object_id
+          source: filter
+          key: business_object_id
+          transform: trim
+        - param: status
+          source: filter
+          key: status
+          transform: identity
+        - param: uploaded_from
+          source: filter
+          key: uploaded_at
+          transform: range_start
+        - param: uploaded_to
+          source: filter
+          key: uploaded_at
+          transform: range_end
+      pagination:
+        page: page
+        page_size: page_size
+    filters:
+      - key: user_id
+        title: 上传用户 ID
+        type: text
+      - key: feature
+        title: 资源用途
+        type: enum
+        enum:
+          recharge_voucher: 充值凭证
+      - key: business_object_type
+        title: 业务对象类型
+        type: enum
+        enum:
+          recharge_order: 充值订单
+          user_profile: 用户资料
+      - key: business_object_id
+        title: 业务对象 ID
+        type: text
+      - key: status
+        title: 资源状态
+        type: enum
+        enum:
+          normal: 正常
+          deleted: 已删除
+          cleaned: 已清理
+      - key: uploaded_at
+        title: 上传时间
+        type: daterange
     columns:
       - field: resource_id
         title: 资源 ID
+      - field: user_id
+        title: 上传用户 ID
       - field: feature
         title: 资源类型
+      - field: business_object_type
+        title: 业务对象类型
+      - field: business_object_id
+        title: 业务对象 ID
       - field: public_url
         title: 文件名
       - field: file_size_bytes
@@ -28,32 +96,6 @@ views:
       - field: uploaded_at
         title: 上传时间
         render: datetime
-    actions:
-      - key: upload
-        type: page
-        title: 上传
-        api: POST /api/storage/upload
-        fields:
-          - field: file
-            title: 图片文件
-            type: file
-            required: true
-          - field: feature
-            title: 资源用途
-            type: enum
-            required: true
-            default: recharge_voucher
-            enum:
-              recharge_voucher: 充值凭证
-          - field: business_object_type
-            title: 业务对象类型
-            type: enum
-            enum:
-              recharge_order: 充值订单
-              user_profile: 用户资料
-          - field: business_object_id
-            title: 业务对象 ID
-            type: string
 roles:
   - code: admin
     title: 超级管理员
