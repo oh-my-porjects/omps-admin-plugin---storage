@@ -1,0 +1,20 @@
+{
+  "api": "GET /api/storage/admin/resource-detail",
+  "cases": [
+    {
+      "name": "资源 ID 缺失返回 8022",
+      "kind": "http",
+      "actor": "admin",
+      "expect_status": 200,
+      "expect_field": {"status": 8022}
+    },
+    {
+      "name": "资源不存在返回 8023",
+      "kind": "http",
+      "actor": "admin",
+      "query": {"resource_id": "Res000000999"},
+      "expect_status": 200,
+      "expect_field": {"status": 8023}
+    }
+  ]
+}

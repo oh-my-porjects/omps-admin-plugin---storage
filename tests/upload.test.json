@@ -1,0 +1,22 @@
+{
+  "api": "POST /api/storage/upload",
+  "cases": [
+    {
+      "name": "未登录上传返回 8001",
+      "kind": "http",
+      "actor": "anonymous",
+      "headers": {"Content-Type": "multipart/form-data"},
+      "expect_status": 200,
+      "expect_field": {"status": 8001}
+    },
+    {
+      "name": "缺少文件返回 8002",
+      "kind": "http",
+      "actor": "user",
+      "headers": {"X-User-ID": "User00000001", "Content-Type": "multipart/form-data"},
+      "body": {"feature": "recharge_voucher"},
+      "expect_status": 200,
+      "expect_field": {"status": 8002}
+    }
+  ]
+}

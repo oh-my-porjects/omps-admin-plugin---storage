@@ -2,7 +2,10 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,67 +33,89 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 8005, nil, "业务对象类型或业务对象 ID 格式非法")
 		return
 	}
-	file, header, err := r.FormFile("file")
-	if err != nil {
+	files := uploadFileHeaders(r.MultipartForm)
+	if len(files) == 0 {
 		writeJSON(w, 8002, nil, "缺少上传文件")
 		return
 	}
-	defer file.Close()
-	payload, err := readImagePayload(file, header)
-	if err != nil {
-		if errors.Is(err, errUnsupportedImage) {
-			writeJSON(w, 8004, nil, "不支持的图片格式，仅允许 JPG、JPEG、PNG、WEBP")
+	payloads := make([]imagePayload, 0, len(files))
+	seen := map[string]struct{}{}
+	for _, header := range files {
+		file, err := header.Open()
+		if err != nil {
+			writeJSON(w, 8002, nil, "缺少上传文件")
 			return
 		}
-		writeJSON(w, 8002, nil, "缺少上传文件")
-		return
+		payload, err := readImagePayload(file, header)
+		_ = file.Close()
+		if err != nil {
+			if errors.Is(err, errUnsupportedImage) {
+				writeJSON(w, 8004, nil, "不支持的图片格式，仅允许 JPG、JPEG、PNG、WEBP")
+				return
+			}
+			writeJSON(w, 8002, nil, "缺少上传文件")
+			return
+		}
+		digest := payloadDigest(payload)
+		if _, ok := seen[digest]; ok {
+			writeJSON(w, 8002, nil, "同批次文件重复")
+			return
+		}
+		seen[digest] = struct{}{}
+		payloads = append(payloads, payload)
 	}
 	now := time.Now().UTC()
-	resourceID := newUUID()
+	batchID := newUUID()
 	cfg := p.cfg
 	useSelftestStorage := selftestUploadMockEnabled(r)
 	if useSelftestStorage && !cfg.validForUpload() {
 		cfg = selftestUploadStorageConfig(cfg)
 	}
-	storageKey := buildStorageKey(cfg.Environment, feature, userID, resourceID, payload.Ext, now)
 	if !cfg.validForUpload() {
 		writeJSON(w, 8006, nil, "R2 存储配置缺失或不可用")
 		return
 	}
-	if !useSelftestStorage {
-		if err := p.putR2Object(r.Context(), storageKey, payload.MimeType, payload.Content); err != nil {
-			if errors.Is(err, errR2ConfigMissing) {
-				writeJSON(w, 8006, nil, "R2 存储配置缺失或不可用")
+	resources := make([]storageResource, 0, len(payloads))
+	for _, payload := range payloads {
+		resourceID := newUUID()
+		storageKey := buildStorageKey(cfg.Environment, feature, userID, resourceID, payload.Ext, now)
+		if !useSelftestStorage {
+			if err := p.putR2Object(r.Context(), storageKey, payload.MimeType, payload.Content); err != nil {
+				if errors.Is(err, errR2ConfigMissing) {
+					writeJSON(w, 8006, nil, "R2 存储配置缺失或不可用")
+					return
+				}
+				p.logR2UploadFailure(err, feature, payload.MimeType, payload.SizeBytes)
+				writeJSON(w, 8007, nil, "上传 R2 失败")
 				return
 			}
-			p.logR2UploadFailure(err, feature, payload.MimeType, payload.SizeBytes)
-			writeJSON(w, 8007, nil, "上传 R2 失败")
-			return
 		}
+		resources = append(resources, storageResource{
+			ID:                 resourceID,
+			UploadBatchID:      batchID,
+			IsCurrent:          true,
+			UserID:             userID,
+			Feature:            feature,
+			BusinessObjectType: objectType,
+			BusinessObjectID:   objectID,
+			OriginalFilename:   payload.OriginalName,
+			FileExt:            payload.Ext,
+			MimeType:           payload.MimeType,
+			FileSizeBytes:      payload.SizeBytes,
+			StorageKey:         storageKey,
+			PublicURL:          publicURL(cfg.PublicBaseURL, storageKey),
+			Status:             statusNormal,
+			UploadedAt:         now,
+			CreatedAt:          now,
+			UpdatedAt:          now,
+		})
 	}
-	res := storageResource{
-		ID:                 resourceID,
-		UserID:             userID,
-		Feature:            feature,
-		BusinessObjectType: objectType,
-		BusinessObjectID:   objectID,
-		OriginalFilename:   payload.OriginalName,
-		FileExt:            payload.Ext,
-		MimeType:           payload.MimeType,
-		FileSizeBytes:      payload.SizeBytes,
-		StorageKey:         storageKey,
-		PublicURL:          publicURL(cfg.PublicBaseURL, storageKey),
-		Status:             statusNormal,
-		UploadedAt:         now,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-	}
-	saved, err := p.insertResource(r.Context(), res)
+	saved, err := p.insertResourceBatch(r.Context(), batchID, resources)
 	if err != nil {
 		writeJSON(w, 8008, nil, "资源元数据保存失败")
 		return
 	}
-	writeJSON(w, 0, uploadResponse(saved), "")
+	writeJSON(w, 0, uploadResponse(batchID, feature, objectType, objectID, now, saved), "")
 }
 
 func (p *StoragePlugin) logR2UploadFailure(err error, feature, mimeType string, fileSize int64) {
@@ -129,6 +154,22 @@ func isAdminProxyRequest(r *http.Request) bool {
 	return strings.TrimSpace(r.Header.Get("X-Admin-Session-Token")) != "" ||
 		strings.TrimSpace(r.Header.Get("X-Admin-Token")) != "" ||
 		strings.TrimSpace(r.Header.Get("X-Admin-Role")) != ""
+}
+
+func uploadFileHeaders(form *multipart.Form) []*multipart.FileHeader {
+	if form == nil || form.File == nil {
+		return nil
+	}
+	files := append([]*multipart.FileHeader{}, form.File["files"]...)
+	if len(files) == 0 {
+		files = append(files, form.File["file"]...)
+	}
+	return files
+}
+
+func payloadDigest(payload imagePayload) string {
+	sum := sha256.Sum256(payload.Content)
+	return strconv.FormatInt(payload.SizeBytes, 10) + ":" + hex.EncodeToString(sum[:])
 }
 
 func (p *StoragePlugin) handleResourceList(w http.ResponseWriter, r *http.Request) {
@@ -206,36 +247,42 @@ func parseResourceListFilter(r *http.Request) (resourceListFilter, int, string) 
 		}
 		filter.PageSize = pageSize
 	}
-	from, ok, err := parseOptionalTime(q.Get("uploaded_from"))
+	from, ok, err := parseOptionalTimestamp(q.Get("uploaded_from_ts"))
 	if err != nil {
 		return filter, 8014, "上传时间范围非法"
 	}
 	if ok {
 		filter.UploadedFrom = &from
 	}
-	to, ok, err := parseOptionalTime(q.Get("uploaded_to"))
+	to, ok, err := parseOptionalTimestamp(q.Get("uploaded_to_ts"))
 	if err != nil {
 		return filter, 8014, "上传时间范围非法"
 	}
 	if ok {
 		filter.UploadedTo = &to
 	}
+	filter.IncludeHistory = parseBoolQuery(q.Get("include_history"))
 	if filter.UploadedFrom != nil && filter.UploadedTo != nil && filter.UploadedTo.Before(*filter.UploadedFrom) {
 		return filter, 8014, "上传时间范围非法"
 	}
 	return filter, 0, ""
 }
 
-func parseOptionalTime(raw string) (time.Time, bool, error) {
+func parseOptionalTimestamp(raw string) (time.Time, bool, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return time.Time{}, false, nil
 	}
-	t, err := time.Parse(time.RFC3339, raw)
+	sec, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
 		return time.Time{}, false, err
 	}
-	return t, true, nil
+	return time.Unix(sec, 0).UTC(), true, nil
+}
+
+func parseBoolQuery(raw string) bool {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	return raw == "1" || raw == "true" || raw == "yes"
 }
 
 func selftestUploadMockEnabled(r *http.Request) bool {
@@ -264,7 +311,22 @@ func selftestUploadStorageConfig(cfg storageConfig) storageConfig {
 	return cfg
 }
 
-func uploadResponse(res storageResource) map[string]any {
+func uploadResponse(batchID, feature, objectType, objectID string, uploadedAt time.Time, resources []storageResource) map[string]any {
+	items := make([]map[string]any, 0, len(resources))
+	for _, res := range resources {
+		items = append(items, uploadResourceItem(res))
+	}
+	return map[string]any{
+		"batch_id":             batchID,
+		"feature":              feature,
+		"business_object_type": objectType,
+		"business_object_id":   objectID,
+		"uploaded_ts":          uploadedAt.Unix(),
+		"resources":            items,
+	}
+}
+
+func uploadResourceItem(res storageResource) map[string]any {
 	return map[string]any{
 		"resource_id":     res.ID,
 		"public_url":      res.PublicURL,
@@ -273,13 +335,15 @@ func uploadResponse(res storageResource) map[string]any {
 		"status":          res.Status,
 		"mime_type":       res.MimeType,
 		"file_size_bytes": res.FileSizeBytes,
-		"uploaded_at":     res.UploadedAt.UTC().Format(time.RFC3339),
+		"uploaded_ts":     res.UploadedAt.UTC().Unix(),
 	}
 }
 
 func resourceListItem(res storageResource) map[string]any {
 	return map[string]any{
 		"resource_id":          res.ID,
+		"batch_id":             res.UploadBatchID,
+		"is_current":           res.IsCurrent,
 		"user_id":              res.UserID,
 		"feature":              res.Feature,
 		"business_object_type": res.BusinessObjectType,
@@ -288,7 +352,7 @@ func resourceListItem(res storageResource) map[string]any {
 		"status":               res.Status,
 		"mime_type":            res.MimeType,
 		"file_size_bytes":      res.FileSizeBytes,
-		"uploaded_at":          res.UploadedAt.UTC().Format(time.RFC3339),
+		"uploaded_ts":          res.UploadedAt.UTC().Unix(),
 	}
 }
 
@@ -297,8 +361,8 @@ func resourceDetail(res storageResource) map[string]any {
 	item["original_filename"] = res.OriginalFilename
 	item["storage_key"] = res.StorageKey
 	item["file_ext"] = res.FileExt
-	item["deleted_at"] = formatTimePtr(res.DeletedAt)
-	item["cleaned_at"] = formatTimePtr(res.CleanedAt)
+	item["deleted_ts"] = unixTimePtr(res.DeletedAt)
+	item["cleaned_ts"] = unixTimePtr(res.CleanedAt)
 	return item
 }
 

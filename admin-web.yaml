@@ -11,7 +11,7 @@ views:
   - key: resource_list
     type: table
     title: 资源
-    api: GET /api/storage/resource-list
+    api: GET /api/storage/admin/resource-list
     request:
       query:
         - param: user_id
@@ -34,14 +34,18 @@ views:
           source: filter
           key: status
           transform: identity
-        - param: uploaded_from
+        - param: uploaded_from_ts
           source: filter
-          key: uploaded_at
+          key: uploaded_ts
           transform: range_start
-        - param: uploaded_to
+        - param: uploaded_to_ts
           source: filter
-          key: uploaded_at
+          key: uploaded_ts
           transform: range_end
+        - param: include_history
+          source: filter
+          key: include_history
+          transform: identity
       pagination:
         page: page
         page_size: page_size
@@ -70,9 +74,12 @@ views:
           normal: 正常
           deleted: 已删除
           cleaned: 已清理
-      - key: uploaded_at
+      - key: uploaded_ts
         title: 上传时间
         type: daterange
+      - key: include_history
+        title: 包含历史
+        type: boolean
     columns:
       - field: resource_id
         title: 资源 ID
@@ -93,7 +100,7 @@ views:
         title: 类型
       - field: status
         title: 状态
-      - field: uploaded_at
+      - field: uploaded_ts
         title: 上传时间
         render: datetime
 roles:

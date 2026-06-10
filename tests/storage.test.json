@@ -1,0 +1,13 @@
+{
+  "api": "POST /_internal/method-call/storage",
+  "cases": [
+    {
+      "name": "内部方法调用缺 token 返回 401",
+      "kind": "http",
+      "actor": "anonymous",
+      "method": "POST",
+      "path": "/_internal/method-call/storage",
+      "expect_status": 401
+    }
+  ]
+}

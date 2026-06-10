@@ -35,4 +35,27 @@ noise_fields: []
 #     seed_data:
 #       - {id: "{range_tag}001", name: "示例 1", created_at: "now()"}
 #       - {id: "{range_tag}002", name: "示例 2", created_at: "now()"}
-tables: {}
+tables:
+  storage_resources:
+    primary_key: id
+    range_filter: "id LIKE '{range_tag}%' OR upload_batch_id LIKE '{range_tag}%'"
+    snapshot_view: [id, upload_batch_id, is_current, user_id, feature, business_object_type, business_object_id, status, storage_key]
+    snapshot_summary: "id, upload_batch_id, feature, business_object_id, status"
+    seed_data:
+      - id: "{range_tag}res001"
+        upload_batch_id: "{range_tag}bat001"
+        is_current: true
+        user_id: "User00000001"
+        feature: "recharge_voucher"
+        business_object_type: "recharge_order"
+        business_object_id: "{range_tag}order001"
+        original_filename: "voucher.jpg"
+        file_ext: "jpg"
+        mime_type: "image/jpeg"
+        file_size_bytes: 11
+        storage_key: "{range_tag}storage/voucher.jpg"
+        public_url: "https://storage-selftest.example.test/{range_tag}storage/voucher.jpg"
+        status: "normal"
+        uploaded_at: "now()"
+        created_at: "now()"
+        updated_at: "now()"

@@ -70,7 +70,7 @@ func (p *StoragePlugin) readRetentionDays(ctx context.Context) int {
 func (p *StoragePlugin) deletedResourcesBefore(ctx context.Context, cutoff time.Time) ([]storageResource, error) {
 	if p.db != nil {
 		rows, err := p.db.QueryContext(ctx, `
-			SELECT id::text, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
+			SELECT id::text, upload_batch_id, is_current, COALESCE(user_id::text, ''), feature, business_object_type, business_object_id,
 				original_filename, file_ext, mime_type, file_size_bytes, storage_key, public_url, status,
 				uploaded_at, deleted_at, cleaned_at, created_at, updated_at
 			FROM storage_resources

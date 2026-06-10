@@ -129,3 +129,10 @@ func formatTimePtr(t *time.Time) string {
 	}
 	return t.UTC().Format(time.RFC3339)
 }
+
+func unixTimePtr(t *time.Time) int64 {
+	if t == nil || t.IsZero() {
+		return 0
+	}
+	return t.UTC().Unix()
+}

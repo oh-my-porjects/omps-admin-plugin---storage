@@ -1,13 +1,19 @@
 {
   "name": "storage",
   "title": "存储公共模块",
-  "summary": "存储公共模块",
+  "summary": "负责用户上传业务图片资源，并维护资源与业务对象、业务用途之间的当前有效绑定关系。",
   "path": "modules/storage",
-  "owner_tables": [],
+  "owner_tables": [
+    "storage_resources"
+  ],
   "public_apis": [
     {
       "method": "GET",
       "path": "/api/storage/hello"
+    },
+    {
+      "method": "POST",
+      "path": "/api/storage/upload"
     },
     {
       "method": "POST",
@@ -24,12 +30,51 @@
   ],
   "admin_apis": [
     {
+      "method": "GET",
+      "path": "/api/storage/admin/resource-list"
+    },
+    {
+      "method": "GET",
+      "path": "/api/storage/admin/resource-detail"
+    },
+    {
       "method": "POST",
       "path": "/api/storage/admin/ping"
     }
   ],
   "dependencies": [],
-  "configs": [],
+  "configs": [
+    {
+      "key": "STORAGE_R2_ACCOUNT_ID",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "key": "STORAGE_R2_ACCESS_KEY_ID",
+      "required": true,
+      "sensitive": true
+    },
+    {
+      "key": "STORAGE_R2_SECRET_ACCESS_KEY",
+      "required": true,
+      "sensitive": true
+    },
+    {
+      "key": "STORAGE_R2_BUCKET",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "key": "STORAGE_R2_PUBLIC_BASE_URL",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "key": "STORAGE_ENVIRONMENT",
+      "required": false,
+      "sensitive": false
+    }
+  ],
   "entry_files": [
     "main.go"
   ],
@@ -50,10 +95,9 @@
     "exit_policy": "cooperative_cancel",
     "allows_new_work_while_unloading": false
   },
-  "related_requirements": [],
-  "last_generated_at": "2026-05-19T15:11:58Z",
-  "warnings": [
-    "缺少 api-docs.json，已从源码 Routes 降级解析",
-    "缺少 schema.json，表 ownership 未能确定"
-  ]
+  "related_requirements": [
+    99
+  ],
+  "last_generated_at": "2026-06-10T11:46:00Z",
+  "warnings": []
 }

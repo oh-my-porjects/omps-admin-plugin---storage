@@ -1,0 +1,12 @@
+{
+  "api": "POST /api/storage/admin/ping",
+  "cases": [
+    {
+      "name": "后台 ping 正常返回 pong",
+      "kind": "http",
+      "actor": "admin",
+      "expect_status": 200,
+      "expect_field": {"status": 0, "msg": "pong"}
+    }
+  ]
+}

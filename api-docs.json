@@ -14,500 +14,145 @@
         "description": "模块基础信息。",
         "data_type": "object",
         "fields": [
-          {
-            "name": "module",
-            "type": "string",
-            "description": "模块名称。"
-          },
-          {
-            "name": "version",
-            "type": "string",
-            "description": "模块版本。"
-          }
+          {"name": "module", "type": "string", "description": "模块名称，固定为 storage。"},
+          {"name": "version", "type": "string", "description": "当前模块版本，由平台编译部署时注入。"}
         ],
         "error_codes": []
-      },
-      "response_example": {
-        "status": 0,
-        "data": {
-          "module": "storage",
-          "version": "dev"
-        },
-        "msg": "ok"
       }
     },
     {
       "method": "POST",
       "path": "/api/storage/upload",
       "endpoint_key": "POST /api/storage/upload",
-      "title": "上传业务图片",
-      "description": "上传一张业务图片，并生成资源记录。当前主要用于上传充值凭证截图。上传成功后会返回 resource_id 和图片地址，后续业务模块可以用这个资源 ID 绑定订单或其他业务对象。仅允许 JPG、JPEG、PNG、WEBP。",
+      "title": "上传资源",
+      "description": "用户一次上传一个或多个图片文件，并绑定到指定业务对象和业务用途；同一业务对象和用途重复上传时，本次批次覆盖旧当前批次。",
       "auth": "login",
       "params": [
-        {
-          "name": "X-User-ID",
-          "type": "string",
-          "required": true,
-          "in": "header",
-          "constraint": "12 位 base62 ID",
-          "description": "当前登录用户 ID，由 runtime 登录态注入。"
-        },
-        {
-          "name": "file",
-          "type": "file",
-          "required": true,
-          "in": "formData",
-          "constraint": "非空图片文件，格式为 JPG、JPEG、PNG 或 WEBP",
-          "description": "要上传的图片文件。"
-        },
-        {
-          "name": "feature",
-          "type": "string",
-          "required": true,
-          "in": "formData",
-          "constraint": "当前仅允许 recharge_voucher",
-          "description": "图片用途，也就是这张图是拿来做什么的。当前仅支持 recharge_voucher，表示充值凭证截图。"
-        },
-        {
-          "name": "business_object_type",
-          "type": "string",
-          "required": false,
-          "in": "formData",
-          "constraint": "为空或 recharge_order/user_profile",
-          "description": "这张图片要绑定到哪类业务对象。比如 recharge_order 表示充值订单，user_profile 表示用户资料。"
-        },
-        {
-          "name": "business_object_id",
-          "type": "string",
-          "required": false,
-          "in": "formData",
-          "constraint": "与 business_object_type 同时为空或同时填写，最多 100 字符",
-          "description": "这张图片具体绑定到哪一条业务数据。比如某个订单 ID，或某个用户 ID。"
-        }
+        {"name": "X-User-ID", "type": "string", "required": true, "in": "header", "constraint": "12 位 base62 ID，由 runtime 登录态注入", "description": "当前登录用户 ID，用于记录资源归属；业务方不要在请求体传 user_id。"},
+        {"name": "files", "type": "array", "item_type": "file", "required": true, "in": "formData", "constraint": "至少 1 个 JPG、JPEG、PNG 或 WEBP 图片文件；同一批次内不能重复提交完全相同的文件", "description": "本次要上传并绑定到同一业务对象的图片文件集合；服务端为每个文件生成独立资源记录。"},
+        {"name": "file", "type": "file", "required": false, "in": "formData", "constraint": "兼容旧单文件字段；当 files 未传时可传 file", "description": "旧版单文件上传字段，新客户端应使用 files。"},
+        {"name": "feature", "type": "string", "required": true, "in": "formData", "constraint": "仅允许 recharge_voucher=充值凭证截图", "description": "资源业务用途，决定这些图片后续由哪个业务流程消费。"},
+        {"name": "business_object_type", "type": "string", "required": false, "in": "formData", "constraint": "为空或 recharge_order=充值订单、user_profile=用户资料；与 business_object_id 同时为空或同时填写", "description": "资源绑定的业务对象类型，为空表示本次资源暂不绑定具体业务对象。"},
+        {"name": "business_object_id", "type": "string", "required": false, "in": "formData", "constraint": "最多 100 字符；只允许字母、数字、下划线、点、冒号、短横线；与 business_object_type 同时为空或同时填写", "description": "资源绑定的具体业务记录编号；重复上传同一对象时以最新批次作为当前有效资源。"}
       ],
-      "request_example": {
-        "feature": "recharge_voucher",
-        "business_object_type": "recharge_order",
-        "business_object_id": "Order0000001",
-        "file": "voucher.png"
-      },
       "response": {
-        "description": "返回上传后的资源核心信息。后续业务接口通常只需要保存或传递这个 resource_id。",
+        "description": "返回本次最新上传批次及批次内全部资源。",
         "data_type": "object",
         "fields": [
-          {
-            "name": "resource_id",
-            "type": "string",
-            "description": "资源 ID，12 位 base62。"
-          },
-          {
-            "name": "public_url",
-            "type": "string",
-            "description": "资源公网访问地址。"
-          },
-          {
-            "name": "storage_key",
-            "type": "string",
-            "description": "对象存储 key。"
-          },
-          {
-            "name": "feature",
-            "type": "string",
-            "description": "图片用途。例如 recharge_voucher 表示充值凭证截图。"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "description": "资源状态：normal 正常、deleted 已软删除、cleaned 已清理。"
-          },
-          {
-            "name": "mime_type",
-            "type": "string",
-            "description": "图片 MIME 类型。"
-          },
-          {
-            "name": "file_size_bytes",
-            "type": "integer",
-            "description": "文件大小，单位字节。"
-          },
-          {
-            "name": "uploaded_at",
-            "type": "string",
-            "description": "上传时间，RFC3339 字符串。"
-          }
+          {"name": "batch_id", "type": "string", "description": "本次上传批次标识，12 位 base62 ID；同一次上传的多个资源共享该值。"},
+          {"name": "feature", "type": "string", "description": "本批资源的业务用途；当前 recharge_voucher 表示充值凭证截图。"},
+          {"name": "business_object_type", "type": "string", "description": "本批资源绑定的业务对象类型；为空表示未绑定业务对象。"},
+          {"name": "business_object_id", "type": "string", "description": "本批资源绑定的具体业务记录编号；为空表示未绑定业务对象。"},
+          {"name": "uploaded_ts", "type": "number", "description": "本批资源上传成功时的 Unix 秒级时间戳。"},
+          {"name": "resources", "type": "array", "description": "本次上传成功并作为当前有效批次的资源列表。", "fields": [
+            {"name": "resource_id", "type": "string", "description": "资源 ID，12 位 base62；业务模块可用它引用具体图片。"},
+            {"name": "public_url", "type": "string", "description": "资源公网访问地址，前端用来展示已上传图片。"},
+            {"name": "storage_key", "type": "string", "description": "对象存储 key，服务端排查和清理对象存储文件时使用。"},
+            {"name": "feature", "type": "string", "description": "单个资源的业务用途；与本批 feature 保持一致。"},
+            {"name": "status", "type": "string", "description": "资源状态：normal=正常，deleted=已软删除，cleaned=已清理。"},
+            {"name": "mime_type", "type": "string", "description": "服务端识别出的图片 MIME 类型。"},
+            {"name": "file_size_bytes", "type": "number", "description": "资源文件大小，单位字节。"},
+            {"name": "uploaded_ts", "type": "number", "description": "该资源上传成功时的 Unix 秒级时间戳。"}
+          ]}
         ],
         "error_codes": [
-          {
-            "status": 8001,
-            "msg": "未登录或登录态无效。"
-          },
-          {
-            "status": 8002,
-            "msg": "缺少上传文件或读取文件失败。"
-          },
-          {
-            "status": 8003,
-            "msg": "资源功能类型缺失或格式非法。"
-          },
-          {
-            "status": 8004,
-            "msg": "不支持的图片格式，仅允许 JPG、JPEG、PNG、WEBP。"
-          },
-          {
-            "status": 8005,
-            "msg": "业务对象类型或业务对象 ID 格式非法。"
-          },
-          {
-            "status": 8006,
-            "msg": "R2 存储配置缺失或不可用。"
-          },
-          {
-            "status": 8007,
-            "msg": "上传 R2 失败。"
-          },
-          {
-            "status": 8008,
-            "msg": "资源元数据保存失败。"
-          }
+          {"status": 8001, "msg": "未登录或登录态无效"},
+          {"status": 8002, "msg": "缺少上传文件、文件为空、同批次文件重复或读取文件失败"},
+          {"status": 8003, "msg": "资源功能类型缺失或格式非法"},
+          {"status": 8004, "msg": "不支持的图片格式，仅允许 JPG、JPEG、PNG、WEBP"},
+          {"status": 8005, "msg": "业务对象类型或业务对象 ID 格式非法"},
+          {"status": 8006, "msg": "R2 存储配置缺失或不可用"},
+          {"status": 8007, "msg": "上传 R2 失败"},
+          {"status": 8008, "msg": "资源元数据保存失败或更新当前批次失败"}
         ]
-      },
-      "response_example": {
-        "status": 0,
-        "data": {
-          "resource_id": "Res000000001",
-          "public_url": "https://cdn.example.com/dev/recharge_voucher/u1/Res000000001.png",
-          "storage_key": "dev/recharge_voucher/u1/Res000000001.png",
-          "feature": "recharge_voucher",
-          "status": "normal",
-          "mime_type": "image/png",
-          "file_size_bytes": 12345,
-          "uploaded_at": "2026-05-28T00:00:00Z"
-        },
-        "msg": ""
       }
     },
     {
       "method": "GET",
-      "path": "/api/storage/resource-list",
-      "endpoint_key": "GET /api/storage/resource-list",
-      "title": "查询资源列表",
-      "description": "分页查询已上传的图片资源，可按上传用户、图片用途、绑定对象、状态和上传时间范围过滤。",
-      "auth": "admin_session",
+      "path": "/api/storage/admin/resource-list",
+      "endpoint_key": "GET /api/storage/admin/resource-list",
+      "title": "查询资源",
+      "description": "后台分页查询已上传资源；默认只返回当前有效批次，include_history=true 时包含历史被覆盖批次。",
+      "auth": "api_key",
       "params": [
-        {
-          "name": "user_id",
-          "type": "string",
-          "required": false,
-          "constraint": "12 位 base62 ID",
-          "description": "按上传用户过滤。"
-        },
-        {
-          "name": "feature",
-          "type": "string",
-          "required": false,
-          "constraint": "1-50 位 token",
-          "description": "按图片用途过滤。"
-        },
-        {
-          "name": "business_object_type",
-          "type": "string",
-          "required": false,
-          "constraint": "1-50 位 token",
-          "description": "按图片绑定的业务对象类型过滤，比如 recharge_order。"
-        },
-        {
-          "name": "business_object_id",
-          "type": "string",
-          "required": false,
-          "constraint": "最多 100 字符 token",
-          "description": "按图片绑定的具体业务对象 ID 过滤，比如某个订单 ID。"
-        },
-        {
-          "name": "status",
-          "type": "string",
-          "required": false,
-          "constraint": "空、normal、deleted 或 cleaned",
-          "description": "按资源状态过滤。normal 正常，deleted 已软删除，cleaned 已清理。"
-        },
-        {
-          "name": "uploaded_from",
-          "type": "string",
-          "required": false,
-          "constraint": "RFC3339 时间字符串",
-          "description": "上传开始时间。"
-        },
-        {
-          "name": "uploaded_to",
-          "type": "string",
-          "required": false,
-          "constraint": "RFC3339 时间字符串",
-          "description": "上传结束时间。"
-        },
-        {
-          "name": "page",
-          "type": "integer",
-          "required": false,
-          "constraint": "默认 1，大于等于 1",
-          "description": "页码。"
-        },
-        {
-          "name": "page_size",
-          "type": "integer",
-          "required": false,
-          "constraint": "默认 20，1-100",
-          "description": "每页数量。"
-        }
+        {"name": "user_id", "type": "string", "required": false, "constraint": "12 位 base62 ID", "description": "按上传用户过滤资源，用于后台排查某个用户提交过的图片。"},
+        {"name": "feature", "type": "string", "required": false, "constraint": "1-50 位 token；当前常用 recharge_voucher=充值凭证截图", "description": "按资源用途过滤。"},
+        {"name": "business_object_type", "type": "string", "required": false, "constraint": "1-50 位 token；例如 recharge_order=充值订单、user_profile=用户资料", "description": "按绑定业务对象类型过滤资源列表。"},
+        {"name": "business_object_id", "type": "string", "required": false, "constraint": "最多 100 字符；只允许字母、数字、下划线、点、冒号、短横线", "description": "按具体业务对象编号过滤资源。"},
+        {"name": "status", "type": "string", "required": false, "constraint": "空、normal=正常、deleted=已软删除、cleaned=已清理", "description": "按兼容现有资源状态过滤。"},
+        {"name": "uploaded_from_ts", "type": "number", "required": false, "constraint": "Unix 秒级时间戳；必须小于等于 uploaded_to_ts", "description": "上传开始时间，用于按时间范围筛选资源。"},
+        {"name": "uploaded_to_ts", "type": "number", "required": false, "constraint": "Unix 秒级时间戳；必须大于等于 uploaded_from_ts", "description": "上传结束时间，用于按时间范围筛选资源。"},
+        {"name": "include_history", "type": "boolean", "required": false, "constraint": "默认 false；false=只返回当前有效批次，true=包含历史被覆盖批次", "description": "控制是否返回被重复上传覆盖的旧资源。"},
+        {"name": "page", "type": "number", "required": false, "constraint": "默认 1，大于等于 1", "description": "分页页码。"},
+        {"name": "page_size", "type": "number", "required": false, "constraint": "默认 20，范围 1-100", "description": "每页返回数量。"}
       ],
       "response": {
-        "description": "返回资源分页列表。",
+        "description": "返回资源分页列表；默认只包含当前有效批次资源。",
         "data_type": "object",
         "fields": [
-          {
-            "name": "items",
-            "type": "array",
-            "description": "资源列表。",
-            "fields": [
-              {
-                "name": "resource_id",
-                "type": "string",
-                "description": "资源 ID。"
-              },
-              {
-                "name": "user_id",
-                "type": "string",
-                "description": "上传用户 ID。"
-              },
-              {
-                "name": "feature",
-                "type": "string",
-                "description": "图片用途。"
-              },
-              {
-                "name": "business_object_type",
-                "type": "string",
-                "description": "图片绑定的业务对象类型。"
-              },
-              {
-                "name": "business_object_id",
-                "type": "string",
-                "description": "图片绑定的具体业务对象 ID。"
-              },
-              {
-                "name": "public_url",
-                "type": "string",
-                "description": "公网访问地址。"
-              },
-              {
-                "name": "status",
-                "type": "string",
-                "description": "资源状态：normal 正常、deleted 已软删除、cleaned 已清理。"
-              },
-              {
-                "name": "mime_type",
-                "type": "string",
-                "description": "图片 MIME 类型。"
-              },
-              {
-                "name": "file_size_bytes",
-                "type": "integer",
-                "description": "文件大小，单位字节。"
-              },
-              {
-                "name": "uploaded_at",
-                "type": "string",
-                "description": "上传时间，RFC3339 字符串。"
-              }
-            ]
-          },
-          {
-            "name": "total",
-            "type": "integer",
-            "description": "总数量。"
-          },
-          {
-            "name": "page",
-            "type": "integer",
-            "description": "当前页码。"
-          },
-          {
-            "name": "page_size",
-            "type": "integer",
-            "description": "每页数量。"
-          }
+          {"name": "items", "type": "array", "description": "资源列表，按 uploaded_ts 倒序排列。", "fields": [
+            {"name": "resource_id", "type": "string", "description": "资源 ID，后台可用它查看资源详情。"},
+            {"name": "batch_id", "type": "string", "description": "资源所属上传批次；同一次多文件上传的资源共享该值。"},
+            {"name": "is_current", "type": "boolean", "description": "是否属于当前有效批次；false 表示该资源已被后续重复上传覆盖。"},
+            {"name": "user_id", "type": "string", "description": "上传该资源的用户标识。"},
+            {"name": "feature", "type": "string", "description": "资源业务用途；例如 recharge_voucher 表示充值凭证截图。"},
+            {"name": "business_object_type", "type": "string", "description": "资源绑定的业务对象类型。"},
+            {"name": "business_object_id", "type": "string", "description": "资源绑定的具体业务记录编号。"},
+            {"name": "public_url", "type": "string", "description": "公网访问地址，用于后台预览图片。"},
+            {"name": "status", "type": "string", "description": "资源状态：normal=正常，deleted=已软删除，cleaned=已清理。"},
+            {"name": "mime_type", "type": "string", "description": "图片 MIME 类型。"},
+            {"name": "file_size_bytes", "type": "number", "description": "文件大小，单位字节。"},
+            {"name": "uploaded_ts", "type": "number", "description": "上传成功时的 Unix 秒级时间戳。"}
+          ]},
+          {"name": "total", "type": "number", "description": "符合筛选条件的资源总数，用于分页。"},
+          {"name": "page", "type": "number", "description": "当前返回的分页页码。"},
+          {"name": "page_size", "type": "number", "description": "当前分页每页数量。"}
         ],
         "error_codes": [
-          {
-            "status": 8012,
-            "msg": "筛选参数格式非法。"
-          },
-          {
-            "status": 8013,
-            "msg": "分页参数超出允许范围。"
-          },
-          {
-            "status": 8014,
-            "msg": "上传时间范围非法。"
-          },
-          {
-            "status": 8015,
-            "msg": "查询资源列表失败。"
-          }
+          {"status": 8012, "msg": "筛选参数格式非法"},
+          {"status": 8013, "msg": "分页参数超出允许范围"},
+          {"status": 8014, "msg": "上传时间范围非法"},
+          {"status": 8015, "msg": "查询资源列表失败"}
         ]
-      },
-      "response_example": {
-        "status": 0,
-        "data": {
-          "items": [],
-          "total": 0,
-          "page": 1,
-          "page_size": 20
-        },
-        "msg": ""
       }
     },
     {
       "method": "GET",
-      "path": "/api/storage/resource-detail",
-      "endpoint_key": "GET /api/storage/resource-detail",
-      "title": "查询资源详情",
-      "description": "按资源 ID 查询图片资源详情。",
-      "auth": "admin_session",
+      "path": "/api/storage/admin/resource-detail",
+      "endpoint_key": "GET /api/storage/admin/resource-detail",
+      "title": "资源详情",
+      "description": "按资源 ID 查询图片资源详情，包含批次字段和当前有效标记。",
+      "auth": "api_key",
       "params": [
-        {
-          "name": "resource_id",
-          "type": "string",
-          "required": true,
-          "constraint": "12 位 base62 ID",
-          "description": "资源 ID。"
-        }
+        {"name": "resource_id", "type": "string", "required": true, "constraint": "12 位 base62 ID", "description": "要查询的资源 ID，用于定位某一张已上传图片。"}
       ],
       "response": {
-        "description": "返回资源详情，包括图片用途、绑定对象和访问地址。",
+        "description": "返回资源详情，包括资源批次、绑定对象和访问地址。",
         "data_type": "object",
         "fields": [
-          {
-            "name": "resource_id",
-            "type": "string",
-            "description": "资源 ID。"
-          },
-          {
-            "name": "user_id",
-            "type": "string",
-            "description": "上传用户 ID。"
-          },
-          {
-            "name": "feature",
-            "type": "string",
-            "description": "图片用途。"
-          },
-          {
-            "name": "business_object_type",
-            "type": "string",
-            "description": "图片绑定的业务对象类型。"
-          },
-          {
-            "name": "business_object_id",
-            "type": "string",
-            "description": "图片绑定的具体业务对象 ID。"
-          },
-          {
-            "name": "public_url",
-            "type": "string",
-            "description": "公网访问地址。"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "description": "资源状态：normal 正常、deleted 已软删除、cleaned 已清理。"
-          },
-          {
-            "name": "mime_type",
-            "type": "string",
-            "description": "图片 MIME 类型。"
-          },
-          {
-            "name": "file_size_bytes",
-            "type": "integer",
-            "description": "文件大小，单位字节。"
-          },
-          {
-            "name": "uploaded_at",
-            "type": "string",
-            "description": "上传时间，RFC3339 字符串。"
-          },
-          {
-            "name": "original_filename",
-            "type": "string",
-            "description": "原始文件名。"
-          },
-          {
-            "name": "storage_key",
-            "type": "string",
-            "description": "对象存储 key。"
-          },
-          {
-            "name": "file_ext",
-            "type": "string",
-            "description": "文件扩展名。"
-          },
-          {
-            "name": "created_at",
-            "type": "string",
-            "description": "创建时间，RFC3339 字符串。"
-          },
-          {
-            "name": "updated_at",
-            "type": "string",
-            "description": "更新时间，RFC3339 字符串。"
-          },
-          {
-            "name": "deleted_at",
-            "type": "string",
-            "description": "软删除时间，未删除时为空。"
-          },
-          {
-            "name": "cleaned_at",
-            "type": "string",
-            "description": "清理时间，未清理时为空。"
-          }
+          {"name": "resource_id", "type": "string", "description": "资源 ID，唯一定位该图片。"},
+          {"name": "batch_id", "type": "string", "description": "资源所属上传批次；同一次多文件上传的资源共享该值。"},
+          {"name": "is_current", "type": "boolean", "description": "是否属于当前有效批次；false 表示该资源已被后续重复上传覆盖。"},
+          {"name": "user_id", "type": "string", "description": "上传该资源的用户标识。"},
+          {"name": "feature", "type": "string", "description": "资源业务用途；例如 recharge_voucher 表示充值凭证截图。"},
+          {"name": "business_object_type", "type": "string", "description": "资源绑定的业务对象类型。"},
+          {"name": "business_object_id", "type": "string", "description": "资源绑定的具体业务记录编号。"},
+          {"name": "public_url", "type": "string", "description": "公网访问地址，用于前端或后台预览图片。"},
+          {"name": "status", "type": "string", "description": "资源状态：normal=正常，deleted=已软删除，cleaned=已清理。"},
+          {"name": "mime_type", "type": "string", "description": "图片 MIME 类型。"},
+          {"name": "file_size_bytes", "type": "number", "description": "文件大小，单位字节。"},
+          {"name": "uploaded_ts", "type": "number", "description": "上传成功时的 Unix 秒级时间戳。"},
+          {"name": "original_filename", "type": "string", "description": "用户上传时的原始文件名，经服务端清理后保存。"},
+          {"name": "storage_key", "type": "string", "description": "对象存储 key，服务端排查和清理对象存储文件时使用。"},
+          {"name": "file_ext", "type": "string", "description": "服务端确认后的文件扩展名。"},
+          {"name": "deleted_ts", "type": "number", "description": "资源被软删除时的 Unix 秒级时间戳；未删除时为 0。"},
+          {"name": "cleaned_ts", "type": "number", "description": "对象存储文件被清理时的 Unix 秒级时间戳；未清理时为 0。"}
         ],
         "error_codes": [
-          {
-            "status": 8022,
-            "msg": "资源 ID 缺失或格式非法。"
-          },
-          {
-            "status": 8023,
-            "msg": "资源不存在。"
-          },
-          {
-            "status": 8024,
-            "msg": "查询资源详情失败。"
-          }
+          {"status": 8022, "msg": "资源 ID 缺失或格式非法"},
+          {"status": 8023, "msg": "资源不存在"},
+          {"status": 8024, "msg": "查询资源详情失败"}
         ]
-      },
-      "response_example": {
-        "status": 0,
-        "data": {
-          "resource_id": "Res000000001",
-          "user_id": "User00000001",
-          "feature": "recharge_voucher",
-          "business_object_type": "recharge_order",
-          "business_object_id": "Order0000001",
-          "public_url": "https://cdn.example.com/dev/recharge_voucher/u1/Res000000001.png",
-          "status": "normal",
-          "mime_type": "image/png",
-          "file_size_bytes": 12345,
-          "uploaded_at": "2026-05-28T00:00:00Z",
-          "original_filename": "voucher.png",
-          "storage_key": "dev/recharge_voucher/u1/Res000000001.png",
-          "file_ext": "png",
-          "created_at": "2026-05-28T00:00:00Z",
-          "updated_at": "2026-05-28T00:00:00Z",
-          "deleted_at": "",
-          "cleaned_at": ""
-        },
-        "msg": ""
       }
     },
     {
@@ -523,11 +168,6 @@
         "data_type": "object",
         "fields": [],
         "error_codes": []
-      },
-      "response_example": {
-        "status": 0,
-        "data": null,
-        "msg": "pong"
       }
     }
   ]

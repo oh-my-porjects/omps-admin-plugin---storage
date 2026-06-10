@@ -1,0 +1,39 @@
+{
+  "module": "storage",
+  "tables": [
+    {
+      "name": "storage_resources",
+      "description": "存储资源元数据表，记录用户上传图片、对象存储地址、业务对象绑定关系和当前有效批次。",
+      "primary_key": "id",
+      "columns": [
+        {"name": "id", "type": "TEXT", "nullable": false, "description": "资源 ID，12 位 base62，唯一定位单张图片。"},
+        {"name": "upload_batch_id", "type": "TEXT", "nullable": false, "description": "上传批次 ID，同一次多文件上传的资源共享该值。"},
+        {"name": "is_current", "type": "BOOLEAN", "nullable": false, "description": "是否属于当前有效批次；重复上传同一业务对象和用途后旧批次置为 false。"},
+        {"name": "user_id", "type": "TEXT", "nullable": true, "description": "上传用户 ID；后台代理上传时可为 system 或空。"},
+        {"name": "feature", "type": "TEXT", "nullable": false, "description": "资源用途，当前允许 recharge_voucher=充值凭证截图。"},
+        {"name": "business_object_type", "type": "TEXT", "nullable": false, "description": "绑定业务对象类型，空字符串表示未绑定；允许 recharge_order=充值订单、user_profile=用户资料。"},
+        {"name": "business_object_id", "type": "TEXT", "nullable": false, "description": "绑定业务对象编号，空字符串表示未绑定。"},
+        {"name": "original_filename", "type": "TEXT", "nullable": false, "description": "用户上传时的原始文件名，经服务端清理后保存。"},
+        {"name": "file_ext", "type": "TEXT", "nullable": false, "description": "服务端确认后的文件扩展名。"},
+        {"name": "mime_type", "type": "TEXT", "nullable": false, "description": "服务端识别的图片 MIME 类型。"},
+        {"name": "file_size_bytes", "type": "BIGINT", "nullable": false, "description": "文件大小，单位字节，必须大于 0。"},
+        {"name": "storage_key", "type": "TEXT", "nullable": false, "description": "对象存储 key。"},
+        {"name": "public_url", "type": "TEXT", "nullable": false, "description": "资源公网访问地址。"},
+        {"name": "status", "type": "TEXT", "nullable": false, "description": "资源状态：normal=正常，deleted=已软删除，cleaned=已清理。"},
+        {"name": "uploaded_at", "type": "TIMESTAMPTZ", "nullable": false, "description": "资源上传成功时间；对外接口转换为 uploaded_ts Unix 秒级时间戳。"},
+        {"name": "deleted_at", "type": "TIMESTAMPTZ", "nullable": true, "description": "资源软删除时间；未删除时为空，对外为 deleted_ts=0。"},
+        {"name": "cleaned_at", "type": "TIMESTAMPTZ", "nullable": true, "description": "对象存储清理时间；未清理时为空，对外为 cleaned_ts=0。"},
+        {"name": "created_at", "type": "TIMESTAMPTZ", "nullable": false, "description": "元数据记录创建时间。"},
+        {"name": "updated_at", "type": "TIMESTAMPTZ", "nullable": false, "description": "元数据记录最后更新时间。"}
+      ],
+      "indexes": [
+        "idx_storage_resources_user",
+        "idx_storage_resources_feature",
+        "idx_storage_resources_object",
+        "idx_storage_resources_batch",
+        "idx_storage_resources_current_object",
+        "idx_storage_resources_status_deleted"
+      ]
+    }
+  ]
+}

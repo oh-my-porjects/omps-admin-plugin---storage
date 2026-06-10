@@ -30,7 +30,32 @@ description: "存储公共模块"
 #         DB_HOST_LAN / DB_HOST_WG / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME /
 #         REDIS_HOST_LAN / REDIS_HOST_WG / REDIS_PORT / REDIS_PASSWORD /
 #         ADMIN_API_KEY
-env_vars: []
+env_vars:
+  - key: STORAGE_R2_ACCOUNT_ID
+    desc: Cloudflare R2 账号 ID，用于构造对象存储 API 请求；缺失时上传接口返回 8006
+    required: true
+    sensitive: false
+  - key: STORAGE_R2_ACCESS_KEY_ID
+    desc: Cloudflare R2 Access Key ID，用于对象上传签名；缺失时上传接口返回 8006
+    required: true
+    sensitive: true
+  - key: STORAGE_R2_SECRET_ACCESS_KEY
+    desc: Cloudflare R2 Secret Access Key，用于对象上传签名；缺失时上传接口返回 8006
+    required: true
+    sensitive: true
+  - key: STORAGE_R2_BUCKET
+    desc: Cloudflare R2 bucket 名称，决定资源写入的对象存储桶；缺失时上传接口返回 8006
+    required: true
+    sensitive: false
+  - key: STORAGE_R2_PUBLIC_BASE_URL
+    desc: 资源公网访问域名，服务端用它拼接 public_url 返回给前端；缺失或格式非法时上传接口返回 8006
+    required: true
+    sensitive: false
+  - key: STORAGE_ENVIRONMENT
+    desc: 对象存储路径中的环境隔离前缀，只允许 1-32 位字母、数字、下划线或短横线；未配置时默认 dev
+    required: false
+    sensitive: false
+    default: "dev"
 # 示例（删掉上面 [] 替换成下面这样）：
 # env_vars:
 #   - key: USER_TOKEN_SECRET

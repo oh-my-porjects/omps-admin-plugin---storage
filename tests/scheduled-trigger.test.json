@@ -1,0 +1,11 @@
+{
+  "api": "POST /_internal/scheduled-trigger/storage",
+  "cases": [
+    {
+      "name": "内部定时触发缺 token 返回 401",
+      "kind": "http",
+      "actor": "anonymous",
+      "expect_status": 401
+    }
+  ]
+}

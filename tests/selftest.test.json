@@ -1,0 +1,11 @@
+{
+  "api": "POST /_internal/selftest/storage",
+  "cases": [
+    {
+      "name": "内部自测缺 token 返回 401",
+      "kind": "http",
+      "actor": "anonymous",
+      "expect_status": 401
+    }
+  ]
+}
