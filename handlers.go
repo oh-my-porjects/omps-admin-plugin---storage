@@ -65,7 +65,7 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 		payloads = append(payloads, payload)
 	}
 	now := time.Now().UTC()
-	batchID := newUUID()
+	batchID := newShortID()
 	cfg := p.cfg
 	useSelftestStorage := selftestUploadMockEnabled(r)
 	if useSelftestStorage && !cfg.validForUpload() {
@@ -77,7 +77,7 @@ func (p *StoragePlugin) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	resources := make([]storageResource, 0, len(payloads))
 	for _, payload := range payloads {
-		resourceID := newUUID()
+		resourceID := newResourceID()
 		storageKey := buildStorageKey(cfg.Environment, feature, userID, resourceID, payload.Ext, now)
 		if !useSelftestStorage {
 			if err := p.putR2Object(r.Context(), storageKey, payload.MimeType, payload.Content); err != nil {
@@ -366,8 +366,23 @@ func resourceDetail(res storageResource) map[string]any {
 	return item
 }
 
-// newUUID 保留旧名字（调用方未改），实际生成 12 字符 base62 短 ID
-func newUUID() string { return newShortID() }
+func newResourceID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		now := time.Now().UnixNano()
+		for i := range b {
+			b[i] = byte(now >> ((i % 8) * 8))
+			now = now*1664525 + 1013904223 + int64(i)
+		}
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return hex.EncodeToString(b[0:4]) + "-" +
+		hex.EncodeToString(b[4:6]) + "-" +
+		hex.EncodeToString(b[6:8]) + "-" +
+		hex.EncodeToString(b[8:10]) + "-" +
+		hex.EncodeToString(b[10:16])
+}
 
 // newShortID 应用层备用 ID 生成（生产路径走 PG generate_short_id() 默认值）
 // 12 字符 base62, crypto/rand 加密随机

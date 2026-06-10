@@ -83,6 +83,18 @@ func TestLoadStorageConfigNormalizesPublicBaseURL(t *testing.T) {
 	}
 }
 
+func TestValidateUUIDAcceptsNewUUIDAndLegacyShortID(t *testing.T) {
+	if !validateUUID("550e8400-e29b-41d4-a716-446655440000") {
+		t.Fatal("标准 UUID 应允许")
+	}
+	if !validateUUID("Res000000101") {
+		t.Fatal("历史 12 位短 ID 应继续允许")
+	}
+	if validateUUID("bad-id") {
+		t.Fatal("非法资源 ID 不应允许")
+	}
+}
+
 func TestHandleUploadRejectsInvalidBusinessObjectType(t *testing.T) {
 	plugin := testPlugin()
 	body, contentType, err := multipartBody(map[string]string{
@@ -230,6 +242,9 @@ func TestHandleUploadSuccess(t *testing.T) {
 	if resp.Data.BatchID == "" || len(resp.Data.Resources) != 1 || resp.Data.Resources[0].UploadedTS == 0 {
 		t.Fatalf("upload response missing batch fields: %s", rec.Body.String())
 	}
+	if !uuidRE.MatchString(resp.Data.Resources[0].ResourceID) {
+		t.Fatalf("resource_id=%q, want standard UUID", resp.Data.Resources[0].ResourceID)
+	}
 }
 
 func TestHandleUploadAcceptsMultipleFilesAndRejectsDuplicates(t *testing.T) {
@@ -249,6 +264,27 @@ func TestHandleUploadAcceptsMultipleFilesAndRejectsDuplicates(t *testing.T) {
 	assertBusinessStatus(t, rec, 0)
 	if len(plugin.memory) != 2 {
 		t.Fatalf("memory count=%d, want 2", len(plugin.memory))
+	}
+	var resp struct {
+		Data struct {
+			Resources []struct {
+				ResourceID string `json:"resource_id"`
+			} `json:"resources"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Data.Resources) != 2 {
+		t.Fatalf("resources count=%d, want 2", len(resp.Data.Resources))
+	}
+	firstID := resp.Data.Resources[0].ResourceID
+	secondID := resp.Data.Resources[1].ResourceID
+	if !uuidRE.MatchString(firstID) || !uuidRE.MatchString(secondID) {
+		t.Fatalf("resource ids=%q,%q, want standard UUIDs", firstID, secondID)
+	}
+	if firstID == secondID {
+		t.Fatalf("multi upload resource IDs must be unique: %q", firstID)
 	}
 
 	body, contentType, err = multipartBodyFiles(map[string]string{"feature": "recharge_voucher"}, "files", []testUploadFile{

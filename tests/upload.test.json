@@ -26,7 +26,7 @@
         "data.resources.1.feature": "recharge_voucher",
         "data.resources.1.status": "normal"
       },
-      "expect_contains": "uploaded_ts"
+      "expect_contains": "resource_id"
     },
     {
       "name": "旧版单文件字段上传成功",
@@ -44,7 +44,7 @@
         "data.resources.0.feature": "recharge_voucher",
         "data.resources.0.status": "normal"
       },
-      "expect_contains": "batch_id"
+      "expect_contains": "resource_id"
     },
     {
       "name": "未登录上传返回 8001",

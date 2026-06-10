@@ -93,7 +93,7 @@
       ],
       "response": {
         "data_type": "object",
-        "description": "返回本次上传批次和批次内生成的资源。",
+        "description": "返回本次上传批次和批次内生成的资源；resources[].resource_id 为新生成的标准 UUID，用于后续绑定、查询或软删除该图片资源。",
         "error_codes": [
           {
             "msg": "未登录或登录态无效",
@@ -158,7 +158,7 @@
             "description": "本次上传成功的资源列表。",
             "fields": [
               {
-                "description": "资源唯一标识，业务模块后续绑定、查询或删除时使用。",
+                "description": "资源唯一标识；新上传资源为标准 UUID，业务模块后续绑定、查询或删除时使用。",
                 "name": "resource_id",
                 "type": "string"
               },
@@ -223,10 +223,10 @@
               "feature": "recharge_voucher",
               "file_size_bytes": 245760,
               "mime_type": "image/jpeg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-              "resource_id": "R2aBc3D4eF5g",
+              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
               "status": "normal",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
+              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
               "uploaded_ts": 1781107200
             }
           ],
@@ -251,16 +251,16 @@
           "type": "string"
         },
         {
-          "constraint": "不同 method 使用不同字段；资源 ID 和用户 ID 需为 12 位 base62；业务对象类型和值需同时有效",
+          "constraint": "不同 method 使用不同字段；资源 ID 支持标准 UUID 或历史 12 位 base62，用户 ID 仍为 12 位 base62；业务对象类型和值需同时有效",
           "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。",
           "fields": [
             {
-              "description": "单个资源 ID；BindBusinessObject 和 SoftDeleteResource 都可使用。",
+              "description": "单个资源 ID；支持新上传资源的标准 UUID 和历史 12 位短 ID，BindBusinessObject 和 SoftDeleteResource 都可使用。",
               "name": "resource_id",
               "type": "string"
             },
             {
-              "description": "批量绑定的资源 ID 列表，仅 BindBusinessObject 使用。",
+              "description": "批量绑定的资源 ID 列表；每项支持标准 UUID 或历史 12 位短 ID，仅 BindBusinessObject 使用。",
               "item_type": "string",
               "name": "resource_ids",
               "type": "array"
@@ -484,7 +484,7 @@
           "business_object_id": "recharge:202606100001",
           "business_object_type": "recharge_order",
           "resource_ids": [
-            "R2aBc3D4eF5g"
+            "550e8400-e29b-41d4-a716-446655440000"
           ],
           "user_id": "U1a2B3c4D5e6"
         },
@@ -505,10 +505,10 @@
               "is_current": true,
               "mime_type": "image/jpeg",
               "original_filename": "voucher-front.jpg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-              "resource_id": "R2aBc3D4eF5g",
+              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
               "status": "normal",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
+              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
               "uploaded_ts": 1781107200,
               "user_id": "U1a2B3c4D5e6"
             }
@@ -695,7 +695,7 @@
             "description": "资源列表，按上传时间倒序、资源 ID 倒序排列。",
             "fields": [
               {
-                "description": "资源唯一标识，后台可用它查看详情。",
+                "description": "资源唯一标识；新上传资源为标准 UUID，后台可用它查看详情。",
                 "name": "resource_id",
                 "type": "string"
               },
@@ -787,8 +787,8 @@
               "file_size_bytes": 245760,
               "is_current": true,
               "mime_type": "image/jpeg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-              "resource_id": "R2aBc3D4eF5g",
+              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
               "status": "normal",
               "uploaded_ts": 1781107200,
               "user_id": "U1a2B3c4D5e6"
@@ -810,8 +810,8 @@
       "auth": "api_key",
       "params": [
         {
-          "constraint": "12 位 base62 ID",
-          "description": "要查询的图片资源 ID，用于定位单条资源记录。",
+          "constraint": "标准 UUID 或历史 12 位 base62 ID",
+          "description": "要查询的图片资源 ID，用于定位单条资源记录；新上传资源使用标准 UUID。",
           "name": "resource_id",
           "required": true,
           "type": "string"
@@ -936,10 +936,10 @@
           "is_current": true,
           "mime_type": "image/jpeg",
           "original_filename": "voucher-front.jpg",
-          "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-          "resource_id": "R2aBc3D4eF5g",
+          "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+          "resource_id": "550e8400-e29b-41d4-a716-446655440000",
           "status": "normal",
-          "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
+          "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
           "uploaded_ts": 1781107200,
           "user_id": "U1a2B3c4D5e6"
         },
@@ -987,16 +987,16 @@
           "type": "string"
         },
         {
-          "constraint": "不同 method 使用不同字段；资源 ID 和用户 ID 需为 12 位 base62；业务对象类型和值需同时有效",
+          "constraint": "不同 method 使用不同字段；资源 ID 支持标准 UUID 或历史 12 位 base62，用户 ID 仍为 12 位 base62；业务对象类型和值需同时有效",
           "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。",
           "fields": [
             {
-              "description": "单个资源 ID；BindBusinessObject 和 SoftDeleteResource 都可使用。",
+              "description": "单个资源 ID；支持新上传资源的标准 UUID 和历史 12 位短 ID，BindBusinessObject 和 SoftDeleteResource 都可使用。",
               "name": "resource_id",
               "type": "string"
             },
             {
-              "description": "批量绑定的资源 ID 列表，仅 BindBusinessObject 使用。",
+              "description": "批量绑定的资源 ID 列表；每项支持标准 UUID 或历史 12 位短 ID，仅 BindBusinessObject 使用。",
               "item_type": "string",
               "name": "resource_ids",
               "type": "array"
@@ -1220,7 +1220,7 @@
           "business_object_id": "recharge:202606100001",
           "business_object_type": "recharge_order",
           "resource_ids": [
-            "R2aBc3D4eF5g"
+            "550e8400-e29b-41d4-a716-446655440000"
           ],
           "user_id": "U1a2B3c4D5e6"
         },
@@ -1241,10 +1241,10 @@
               "is_current": true,
               "mime_type": "image/jpeg",
               "original_filename": "voucher-front.jpg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-              "resource_id": "R2aBc3D4eF5g",
+              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
               "status": "normal",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
+              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
               "uploaded_ts": 1781107200,
               "user_id": "U1a2B3c4D5e6"
             }

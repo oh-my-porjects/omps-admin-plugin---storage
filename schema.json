@@ -6,7 +6,7 @@
       "description": "存储资源元数据表，记录用户上传图片、对象存储地址、业务对象绑定关系和当前有效批次。",
       "primary_key": "id",
       "columns": [
-        {"name": "id", "type": "TEXT", "nullable": false, "description": "资源 ID，12 位 base62，唯一定位单张图片。"},
+        {"name": "id", "type": "TEXT", "nullable": false, "description": "资源 ID；新上传资源为标准 UUID，历史资源可能为 12 位 base62，唯一定位单张图片。"},
         {"name": "upload_batch_id", "type": "TEXT", "nullable": false, "description": "上传批次 ID，同一次多文件上传的资源共享该值。"},
         {"name": "is_current", "type": "BOOLEAN", "nullable": false, "description": "是否属于当前有效批次；重复上传同一业务对象和用途后旧批次置为 false。"},
         {"name": "user_id", "type": "TEXT", "nullable": true, "description": "上传用户 ID；后台代理上传时可为 system 或空。"},

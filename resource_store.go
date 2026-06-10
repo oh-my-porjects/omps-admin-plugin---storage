@@ -89,7 +89,7 @@ func (p *StoragePlugin) ensureSchema(ctx context.Context) error {
 
 func (p *StoragePlugin) insertResource(ctx context.Context, res storageResource) (storageResource, error) {
 	if res.UploadBatchID == "" {
-		res.UploadBatchID = newUUID()
+		res.UploadBatchID = newShortID()
 	}
 	res.IsCurrent = true
 	saved, err := p.insertResourceBatch(ctx, res.UploadBatchID, []storageResource{res})
@@ -261,7 +261,7 @@ func (p *StoragePlugin) bindResourceBatch(ctx context.Context, resourceIDs []str
 	if len(resourceIDs) == 0 {
 		return nil, errResourceNotFound
 	}
-	batchID := newUUID()
+	batchID := newShortID()
 	if p.db != nil {
 		tx, err := p.db.BeginTx(ctx, nil)
 		if err != nil {

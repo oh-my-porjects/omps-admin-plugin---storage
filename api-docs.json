@@ -48,7 +48,7 @@
         "files": ["voucher-front.jpg", "voucher-back.png"]
       },
       "response": {
-        "description": "返回本次上传批次和批次内生成的资源。",
+        "description": "返回本次上传批次和批次内生成的资源；新上传的 resources[].resource_id 为标准 UUID，历史资源可能仍是 12 位短 ID。",
         "data_type": "object",
         "fields": [
           {"name": "batch_id", "type": "string", "description": "本次上传批次 ID，批次内多张图片共享该值。"},
@@ -57,7 +57,7 @@
           {"name": "business_object_id", "type": "string", "description": "本批图片绑定的业务记录编号；为空表示未绑定。"},
           {"name": "uploaded_ts", "type": "number", "description": "本批图片完成元数据保存时的 Unix 秒级时间戳。"},
           {"name": "resources", "type": "array", "description": "本次上传成功的资源列表。", "fields": [
-            {"name": "resource_id", "type": "string", "description": "资源唯一标识，业务模块后续绑定、查询或删除时使用。"},
+            {"name": "resource_id", "type": "string", "description": "资源唯一标识；新上传资源为标准 UUID，业务模块后续绑定、查询或删除时使用。"},
             {"name": "public_url", "type": "string", "description": "图片公网访问地址，前端可直接用于展示。"},
             {"name": "storage_key", "type": "string", "description": "R2 对象 key，用于服务端排查和清理对象。"},
             {"name": "feature", "type": "string", "description": "单张图片的业务用途，与本批 feature 一致。"},
@@ -88,9 +88,9 @@
           "uploaded_ts": 1781107200,
           "resources": [
             {
-              "resource_id": "R2aBc3D4eF5g",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/R2aBc3D4eF5g.jpg",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
               "feature": "recharge_voucher",
               "status": "normal",
               "mime_type": "image/jpeg",
@@ -188,7 +188,7 @@
       "description": "后台按资源 ID 查询图片资源详情，包含原始文件名、对象存储 key、删除和清理时间。",
       "auth": "api_key",
       "params": [
-        {"name": "resource_id", "type": "string", "required": true, "constraint": "12 位 base62 ID", "description": "要查询的图片资源 ID，用于定位单条资源记录。"}
+        {"name": "resource_id", "type": "string", "required": true, "constraint": "标准 UUID 或历史 12 位 base62 ID", "description": "要查询的图片资源 ID，用于定位单条资源记录；新上传资源使用标准 UUID。"}
       ],
       "response": {
         "description": "返回单个资源的完整后台详情。",
@@ -274,17 +274,17 @@
       "params": [
         {"name": "method", "type": "string", "required": true, "constraint": "BindBusinessObject=绑定资源到业务对象，SoftDeleteResource=软删除资源", "description": "要调用的内部方法名称，由 runtime 或其他后端模块传入。"},
         {"name": "args", "type": "object", "required": false, "fields": [
-          {"name": "resource_id", "type": "string", "description": "单个资源 ID；BindBusinessObject 和 SoftDeleteResource 都可使用。"},
-          {"name": "resource_ids", "type": "array", "item_type": "string", "description": "批量绑定的资源 ID 列表，仅 BindBusinessObject 使用。"},
+          {"name": "resource_id", "type": "string", "description": "单个资源 ID；支持新上传资源的标准 UUID 和历史 12 位短 ID，BindBusinessObject 和 SoftDeleteResource 都可使用。"},
+          {"name": "resource_ids", "type": "array", "item_type": "string", "description": "批量绑定的资源 ID 列表；每项支持标准 UUID 或历史 12 位短 ID，仅 BindBusinessObject 使用。"},
           {"name": "user_id", "type": "string", "description": "资源归属用户 ID；绑定时用于限制只能绑定该用户资源，空值表示系统资源。"},
           {"name": "business_object_type", "type": "string", "description": "绑定目标业务对象类型；recharge_order=充值订单，user_profile=用户资料。"},
           {"name": "business_object_id", "type": "string", "description": "绑定目标业务记录编号。"}
-        ], "constraint": "不同 method 使用不同字段；资源 ID 和用户 ID 需为 12 位 base62；业务对象类型和值需同时有效", "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。"}
+        ], "constraint": "不同 method 使用不同字段；资源 ID 支持标准 UUID 或历史 12 位 base62，用户 ID 仍为 12 位 base62；业务对象类型和值需同时有效", "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。"}
       ],
       "request_example": {
         "method": "BindBusinessObject",
         "args": {
-          "resource_ids": ["R2aBc3D4eF5g"],
+          "resource_ids": ["550e8400-e29b-41d4-a716-446655440000"],
           "user_id": "U1a2B3c4D5e6",
           "business_object_type": "recharge_order",
           "business_object_id": "recharge:202606100001"
@@ -341,7 +341,7 @@
         "data": {
           "resources": [
             {
-              "resource_id": "R2aBc3D4eF5g",
+              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
               "batch_id": "LmN456pQr012",
               "is_current": true,
               "user_id": "U1a2B3c4D5e6",
