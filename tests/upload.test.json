@@ -2,6 +2,51 @@
   "api": "POST /api/storage/upload",
   "cases": [
     {
+      "name": "多文件上传成功并返回批次资源",
+      "kind": "file_upload",
+      "actor": "user",
+      "headers": {"X-User-ID": "User00000001", "X-Storage-Selftest-Mock": "1"},
+      "fields": {
+        "feature": "recharge_voucher",
+        "business_object_type": "recharge_order",
+        "business_object_id": "RC${rand:10}"
+      },
+      "files": [
+        {"field": "files", "filename": "voucher-front.png", "content_type": "image/png", "fixture": "png_1x1"},
+        {"field": "files", "filename": "voucher-bank-slip.jpg", "content_type": "image/jpeg", "fixture": "jpg_1x1"}
+      ],
+      "expect_status": 200,
+      "expect_field": {
+        "status": 0,
+        "data.feature": "recharge_voucher",
+        "data.business_object_type": "recharge_order",
+        "data.business_object_id": "RC${rand:10}",
+        "data.resources.0.feature": "recharge_voucher",
+        "data.resources.0.status": "normal",
+        "data.resources.1.feature": "recharge_voucher",
+        "data.resources.1.status": "normal"
+      },
+      "expect_contains": "uploaded_ts"
+    },
+    {
+      "name": "旧版单文件字段上传成功",
+      "kind": "file_upload",
+      "actor": "user",
+      "headers": {"X-User-ID": "User00000001", "X-Storage-Selftest-Mock": "1"},
+      "fields": {"feature": "recharge_voucher"},
+      "files": [
+        {"field": "file", "filename": "voucher-legacy.jpg", "content_type": "image/jpeg", "fixture": "jpg_1x1"}
+      ],
+      "expect_status": 200,
+      "expect_field": {
+        "status": 0,
+        "data.feature": "recharge_voucher",
+        "data.resources.0.feature": "recharge_voucher",
+        "data.resources.0.status": "normal"
+      },
+      "expect_contains": "batch_id"
+    },
+    {
       "name": "未登录上传返回 8001",
       "kind": "http",
       "actor": "anonymous",

@@ -2,6 +2,26 @@
   "api": "GET /api/storage/admin/resource-detail",
   "cases": [
     {
+      "name": "查询资源详情返回批次和时间戳字段",
+      "kind": "http",
+      "actor": "admin",
+      "query": {"resource_id": "TestRes00002"},
+      "expect_status": 200,
+      "expect_field": {
+        "status": 0,
+        "data.resource_id": "TestRes00002",
+        "data.batch_id": "TestBatch002",
+        "data.is_current": true,
+        "data.feature": "recharge_voucher",
+        "data.business_object_type": "recharge_order",
+        "data.business_object_id": "{range_tag}order001",
+        "data.status": "normal",
+        "data.deleted_ts": 0,
+        "data.cleaned_ts": 0
+      },
+      "expect_contains": "uploaded_ts"
+    },
+    {
       "name": "资源 ID 缺失返回 8022",
       "kind": "http",
       "actor": "admin",

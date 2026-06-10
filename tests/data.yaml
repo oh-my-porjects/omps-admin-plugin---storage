@@ -38,23 +38,40 @@ noise_fields: []
 tables:
   storage_resources:
     primary_key: id
-    range_filter: "id LIKE '{range_tag}%' OR upload_batch_id LIKE '{range_tag}%'"
+    range_filter: "id LIKE '{range_tag}%' OR upload_batch_id LIKE '{range_tag}%' OR id IN ('TestRes00001', 'TestRes00002') OR upload_batch_id IN ('TestBatch001', 'TestBatch002')"
     snapshot_view: [id, upload_batch_id, is_current, user_id, feature, business_object_type, business_object_id, status, storage_key]
     snapshot_summary: "id, upload_batch_id, feature, business_object_id, status"
     seed_data:
-      - id: "{range_tag}res001"
-        upload_batch_id: "{range_tag}bat001"
+      - id: "TestRes00001"
+        upload_batch_id: "TestBatch001"
+        is_current: false
+        user_id: "User00000001"
+        feature: "recharge_voucher"
+        business_object_type: "recharge_order"
+        business_object_id: "{range_tag}order001"
+        original_filename: "voucher-history.jpg"
+        file_ext: "jpg"
+        mime_type: "image/jpeg"
+        file_size_bytes: 11
+        storage_key: "{range_tag}storage/voucher-history.jpg"
+        public_url: "https://storage-selftest.example.test/{range_tag}storage/voucher-history.jpg"
+        status: "normal"
+        uploaded_at: "now() - interval '1 hour'"
+        created_at: "now() - interval '1 hour'"
+        updated_at: "now() - interval '1 hour'"
+      - id: "TestRes00002"
+        upload_batch_id: "TestBatch002"
         is_current: true
         user_id: "User00000001"
         feature: "recharge_voucher"
         business_object_type: "recharge_order"
         business_object_id: "{range_tag}order001"
-        original_filename: "voucher.jpg"
+        original_filename: "voucher-current.jpg"
         file_ext: "jpg"
         mime_type: "image/jpeg"
-        file_size_bytes: 11
-        storage_key: "{range_tag}storage/voucher.jpg"
-        public_url: "https://storage-selftest.example.test/{range_tag}storage/voucher.jpg"
+        file_size_bytes: 22
+        storage_key: "{range_tag}storage/voucher-current.jpg"
+        public_url: "https://storage-selftest.example.test/{range_tag}storage/voucher-current.jpg"
         status: "normal"
         uploaded_at: "now()"
         created_at: "now()"

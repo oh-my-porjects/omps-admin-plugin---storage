@@ -2,12 +2,51 @@
   "api": "GET /api/storage/admin/resource-list",
   "cases": [
     {
-      "name": "查询当前资源列表",
+      "name": "默认只查询当前资源列表",
       "kind": "http",
       "actor": "admin",
-      "query": {"page": 1, "page_size": 20, "include_history": false},
+      "query": {
+        "feature": "recharge_voucher",
+        "business_object_type": "recharge_order",
+        "business_object_id": "{range_tag}order001",
+        "page": 1,
+        "page_size": 20,
+        "include_history": false
+      },
       "expect_status": 200,
-      "expect_field": {"status": 0, "data.page": 1, "data.page_size": 20}
+      "expect_field": {
+        "status": 0,
+        "data.total": 1,
+        "data.page": 1,
+        "data.page_size": 20,
+        "data.items.0.resource_id": "TestRes00002",
+        "data.items.0.batch_id": "TestBatch002",
+        "data.items.0.is_current": true
+      }
+    },
+    {
+      "name": "include_history 查询包含历史批次",
+      "kind": "http",
+      "actor": "admin",
+      "query": {
+        "feature": "recharge_voucher",
+        "business_object_type": "recharge_order",
+        "business_object_id": "{range_tag}order001",
+        "page": 1,
+        "page_size": 20,
+        "include_history": true
+      },
+      "expect_status": 200,
+      "expect_field": {
+        "status": 0,
+        "data.total": 2,
+        "data.items.0.resource_id": "TestRes00002",
+        "data.items.0.batch_id": "TestBatch002",
+        "data.items.0.is_current": true,
+        "data.items.1.resource_id": "TestRes00001",
+        "data.items.1.batch_id": "TestBatch001",
+        "data.items.1.is_current": false
+      }
     },
     {
       "name": "分页参数非法返回 8013",

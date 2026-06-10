@@ -30,6 +30,8 @@ import (
 	"time"
 )
 
+func main() {}
+
 // PluginContext 由 Runtime 提供的共享资源
 //
 // 字段协议（v3, 2026-05-04）：必须与 runtime/internal/plugin/interface.go 的字段
