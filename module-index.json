@@ -19,7 +19,7 @@
         "description": "模块基础信息。",
         "error_codes": [
           {
-            "msg": "runtime 未加载模块或路由注册失败时由平台返回 HTTP 级错误，handler 本身不产生业务错误码",
+            "msg": "runtime 未加载模块或路由注册失败时由平台返回 HTTP 级错误；handler 本身不产生业务错误码",
             "status": 500
           }
         ],
@@ -30,7 +30,7 @@
             "type": "string"
           },
           {
-            "description": "模块部署版本，由平台编译加载时注入；本地未注入时通常为 dev。",
+            "description": "模块部署版本，由平台编译加载时注入；本地未注入时为 dev。",
             "name": "version",
             "type": "string"
           }
@@ -50,7 +50,7 @@
       "method": "POST",
       "path": "/api/storage/upload",
       "title": "上传图片资源",
-      "description": "用户上传一个或多个图片文件到 R2，并保存资源元数据；绑定同一业务对象时，新批次会替换旧当前批次。",
+      "description": "登录用户上传一个或多个图片文件到 R2，并保存资源元数据；绑定同一业务对象时，新批次会替换旧当前批次。",
       "auth": "login",
       "params": [
         {
@@ -93,7 +93,7 @@
       ],
       "response": {
         "data_type": "object",
-        "description": "返回本次上传批次和批次内生成的资源；resources[].resource_id 为新生成的标准 UUID，用于后续绑定、查询或软删除该图片资源。",
+        "description": "返回本次上传批次和批次内生成的资源；新上传的 resource_id 为标准 UUID，历史资源可能仍是 12 位短 ID。",
         "error_codes": [
           {
             "msg": "未登录或登录态无效",
@@ -158,7 +158,7 @@
             "description": "本次上传成功的资源列表。",
             "fields": [
               {
-                "description": "资源唯一标识；新上传资源为标准 UUID，业务模块后续绑定、查询或删除时使用。",
+                "description": "资源唯一标识；业务模块后续绑定、查询或删除时使用。",
                 "name": "resource_id",
                 "type": "string"
               },
@@ -178,7 +178,7 @@
                 "type": "string"
               },
               {
-                "description": "现有实现为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
                 "name": "status",
                 "type": "string"
               },
@@ -240,47 +240,20 @@
       "method": "POST",
       "path": "/_internal/method-call/storage",
       "title": "内部方法调用",
-      "description": "Runtime 内部调用 storage 注册方法；当前支持 BindBusinessObject 和 SoftDeleteResource。",
+      "description": "Runtime 内部方法调用入口；当前代码定义了 BindBusinessObject 和 SoftDeleteResource 的注册函数，但初始化流程未调用注册函数，因此默认没有已注册方法。",
       "auth": "api_key",
       "params": [
         {
-          "constraint": "BindBusinessObject=绑定资源到业务对象，SoftDeleteResource=软删除资源",
+          "constraint": "必须匹配 Methods 表中已注册的方法名；当前默认无已注册方法",
           "description": "要调用的内部方法名称，由 runtime 或其他后端模块传入。",
           "name": "method",
           "required": true,
           "type": "string"
         },
         {
-          "constraint": "不同 method 使用不同字段；资源 ID 支持标准 UUID 或历史 12 位 base62，用户 ID 仍为 12 位 base62；业务对象类型和值需同时有效",
-          "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。",
-          "fields": [
-            {
-              "description": "单个资源 ID；支持新上传资源的标准 UUID 和历史 12 位短 ID，BindBusinessObject 和 SoftDeleteResource 都可使用。",
-              "name": "resource_id",
-              "type": "string"
-            },
-            {
-              "description": "批量绑定的资源 ID 列表；每项支持标准 UUID 或历史 12 位短 ID，仅 BindBusinessObject 使用。",
-              "item_type": "string",
-              "name": "resource_ids",
-              "type": "array"
-            },
-            {
-              "description": "资源归属用户 ID；绑定时用于限制只能绑定该用户资源，空值表示系统资源。",
-              "name": "user_id",
-              "type": "string"
-            },
-            {
-              "description": "绑定目标业务对象类型；recharge_order=充值订单，user_profile=用户资料。",
-              "name": "business_object_type",
-              "type": "string"
-            },
-            {
-              "description": "绑定目标业务记录编号。",
-              "name": "business_object_id",
-              "type": "string"
-            }
-          ],
+          "constraint": "自由 JSON 对象；由具体注册方法自行解释，当前默认无固定子结构",
+          "description": "内部方法参数对象；当前实现没有在启动时注册具体方法，因此该对象没有稳定业务字段。",
+          "fields": [],
           "name": "args",
           "required": false,
           "type": "object"
@@ -288,245 +261,42 @@
       ],
       "response": {
         "data_type": "object",
-        "description": "返回内部方法执行结果；单资源绑定或软删除返回资源详情，批量绑定返回 resources 列表。",
+        "description": "返回内部方法执行结果；data 是注册方法的原样返回值，当前默认不会进入成功分支。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
-            "msg": "请求体解析失败、method 为空、方法未注册、参数非法、资源不存在或方法执行失败",
+            "msg": "请求体解析失败、method 为空、方法未注册、方法 panic 或方法执行失败",
             "status": 1
           }
         ],
-        "fields": [
-          {
-            "description": "批量绑定时返回的资源详情列表；单资源方法可能直接返回同结构的资源对象而非包一层 resources。",
-            "fields": [
-              {
-                "description": "资源唯一标识。",
-                "name": "resource_id",
-                "type": "string"
-              },
-              {
-                "description": "资源当前绑定批次 ID。",
-                "name": "batch_id",
-                "type": "string"
-              },
-              {
-                "description": "是否为目标业务对象当前有效资源。",
-                "name": "is_current",
-                "type": "boolean"
-              },
-              {
-                "description": "资源归属用户标识。",
-                "name": "user_id",
-                "type": "string"
-              },
-              {
-                "description": "资源业务用途。",
-                "name": "feature",
-                "type": "string"
-              },
-              {
-                "description": "资源绑定后的业务对象类型。",
-                "name": "business_object_type",
-                "type": "string"
-              },
-              {
-                "description": "资源绑定后的业务记录编号。",
-                "name": "business_object_id",
-                "type": "string"
-              },
-              {
-                "description": "图片公网访问地址。",
-                "name": "public_url",
-                "type": "string"
-              },
-              {
-                "description": "现有实现为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
-                "name": "status",
-                "type": "string"
-              },
-              {
-                "description": "图片 MIME 类型。",
-                "name": "mime_type",
-                "type": "string"
-              },
-              {
-                "description": "图片文件大小，单位字节。",
-                "name": "file_size_bytes",
-                "type": "number"
-              },
-              {
-                "description": "资源上传成功时的 Unix 秒级时间戳。",
-                "name": "uploaded_ts",
-                "type": "number"
-              },
-              {
-                "description": "用户上传时的原始文件名。",
-                "name": "original_filename",
-                "type": "string"
-              },
-              {
-                "description": "R2 对象 key。",
-                "name": "storage_key",
-                "type": "string"
-              },
-              {
-                "description": "服务端确认的文件扩展名。",
-                "name": "file_ext",
-                "type": "string"
-              },
-              {
-                "description": "资源软删除时间；未删除时为 0。",
-                "name": "deleted_ts",
-                "type": "number"
-              },
-              {
-                "description": "R2 对象清理时间；未清理时为 0。",
-                "name": "cleaned_ts",
-                "type": "number"
-              }
-            ],
-            "name": "resources",
-            "type": "array"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源唯一标识。",
-            "name": "resource_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源当前批次 ID。",
-            "name": "batch_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的当前有效标记。",
-            "name": "is_current",
-            "type": "boolean"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源归属用户标识。",
-            "name": "user_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源业务用途。",
-            "name": "feature",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的业务对象类型。",
-            "name": "business_object_type",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的业务记录编号。",
-            "name": "business_object_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片公网访问地址。",
-            "name": "public_url",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
-            "name": "status",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片 MIME 类型。",
-            "name": "mime_type",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片文件大小，单位字节。",
-            "name": "file_size_bytes",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源上传 Unix 秒级时间戳。",
-            "name": "uploaded_ts",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的原始文件名。",
-            "name": "original_filename",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的 R2 对象 key。",
-            "name": "storage_key",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的文件扩展名。",
-            "name": "file_ext",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的软删除 Unix 秒级时间戳；未删除时为 0。",
-            "name": "deleted_ts",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的清理 Unix 秒级时间戳；未清理时为 0。",
-            "name": "cleaned_ts",
-            "type": "number"
-          }
-        ]
+        "fields": []
       },
       "request_example": {
         "args": {
           "business_object_id": "recharge:202606100001",
           "business_object_type": "recharge_order",
-          "resource_ids": [
-            "550e8400-e29b-41d4-a716-446655440000"
-          ],
-          "user_id": "U1a2B3c4D5e6"
+          "resource_id": "550e8400-e29b-41d4-a716-446655440000"
         },
         "method": "BindBusinessObject"
       },
       "response_example": {
-        "data": {
-          "resources": [
-            {
-              "batch_id": "LmN456pQr012",
-              "business_object_id": "recharge:202606100001",
-              "business_object_type": "recharge_order",
-              "cleaned_ts": 0,
-              "deleted_ts": 0,
-              "feature": "recharge_voucher",
-              "file_ext": "jpg",
-              "file_size_bytes": 245760,
-              "is_current": true,
-              "mime_type": "image/jpeg",
-              "original_filename": "voucher-front.jpg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
-              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
-              "status": "normal",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
-              "uploaded_ts": 1781107200,
-              "user_id": "U1a2B3c4D5e6"
-            }
-          ]
-        },
-        "msg": "",
-        "status": 0
+        "data": null,
+        "msg": "未注册的方法: BindBusinessObject",
+        "status": 1
       }
     },
     {
       "method": "POST",
       "path": "/_internal/scheduled-trigger/storage",
       "title": "内部定时任务触发",
-      "description": "Runtime 内部手动触发 storage 定时任务并以 text/event-stream 输出执行日志；当前任务为 cleanup_deleted_resources。",
+      "description": "Runtime 内部手动触发 storage 定时任务并以 text/event-stream 输出执行日志；当前代码定义了 cleanup_deleted_resources 注册函数，但初始化流程未调用注册函数，因此默认没有已注册任务。",
       "auth": "api_key",
       "params": [
         {
-          "constraint": "cleanup_deleted_resources=清理超过保留期的已软删除资源",
+          "constraint": "必须匹配 ScheduledTasks 表中已注册的任务名；当前默认无已注册任务",
           "description": "要手动触发的定时任务名称。",
           "name": "task_name",
           "required": true,
@@ -535,18 +305,18 @@
       ],
       "response": {
         "data_type": "null",
-        "description": "成功时返回 SSE 文本流，每条 data 行是一段中文执行日志，不使用 JSON data 包装。",
+        "description": "注册任务存在时返回 SSE 文本流；当前默认任务未注册，请求 cleanup_deleted_resources 会返回 HTTP 404。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
-            "msg": "请求体解析失败或 task_name 为空",
+            "msg": "请求体解析失败或 task_name 为空，HTTP 级 plain text 响应",
             "status": 400
           },
           {
-            "msg": "未注册的定时任务",
+            "msg": "未注册的定时任务，HTTP 级 plain text 响应",
             "status": 404
           }
         ],
@@ -557,15 +327,15 @@
       },
       "response_example": {
         "data": null,
-        "msg": "data: [2026-06-10T12:00:00Z] 任务 cleanup_deleted_resources 开始执行\\n\\ndata: 成功清理 1 个资源\\n\\n",
-        "status": 0
+        "msg": "未注册的定时任务: cleanup_deleted_resources",
+        "status": 404
       }
     },
     {
       "method": "POST",
       "path": "/_internal/selftest/storage",
       "title": "废弃自测入口",
-      "description": "旧版内部自测入口，当前仅保留鉴权和 410 语义提示；流水线已改为直接执行 tests/*.test.json。",
+      "description": "旧版内部自测入口，当前仅保留内部 token 校验和废弃提示；流水线已改为直接执行 tests/*.test.json。",
       "auth": "api_key",
       "params": [],
       "response": {
@@ -573,7 +343,7 @@
         "description": "通过内部 token 校验后固定返回废弃提示。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
@@ -599,7 +369,7 @@
       "auth": "api_key",
       "params": [
         {
-          "constraint": "12 位 base62 ID",
+          "constraint": "标准 UUID 或历史 12 位 base62 ID",
           "description": "按上传用户筛选资源，用于后台排查某个用户提交过的图片。",
           "name": "user_id",
           "required": false,
@@ -649,7 +419,7 @@
         },
         {
           "constraint": "true/1/yes 表示 true；默认 false",
-          "description": "是否包含被后续上传覆盖的历史资源；false 时只返回当前有效资源。",
+          "description": "是否包含被后续上传或绑定覆盖的历史资源；false 时只返回当前有效资源。",
           "name": "include_history",
           "required": false,
           "type": "boolean"
@@ -671,7 +441,7 @@
       ],
       "response": {
         "data_type": "object",
-        "description": "返回分页资源列表和分页统计。",
+        "description": "返回分页资源列表和分页统计；现有实现列表字段名为 items。",
         "error_codes": [
           {
             "msg": "筛选参数格式非法",
@@ -695,7 +465,7 @@
             "description": "资源列表，按上传时间倒序、资源 ID 倒序排列。",
             "fields": [
               {
-                "description": "资源唯一标识；新上传资源为标准 UUID，后台可用它查看详情。",
+                "description": "资源唯一标识，后台可用它查看详情。",
                 "name": "resource_id",
                 "type": "string"
               },
@@ -710,7 +480,7 @@
                 "type": "boolean"
               },
               {
-                "description": "上传资源的用户标识；系统代理上传时可能为空或为系统归属。",
+                "description": "上传资源的用户标识；系统代理上传时可能为 system。",
                 "name": "user_id",
                 "type": "string"
               },
@@ -720,12 +490,12 @@
                 "type": "string"
               },
               {
-                "description": "资源绑定的业务对象类型。",
+                "description": "资源绑定的业务对象类型；为空表示未绑定。",
                 "name": "business_object_type",
                 "type": "string"
               },
               {
-                "description": "资源绑定的具体业务记录编号。",
+                "description": "资源绑定的具体业务记录编号；为空表示未绑定。",
                 "name": "business_object_id",
                 "type": "string"
               },
@@ -735,7 +505,7 @@
                 "type": "string"
               },
               {
-                "description": "现有实现为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
                 "name": "status",
                 "type": "string"
               },
@@ -876,7 +646,7 @@
             "type": "string"
           },
           {
-            "description": "现有实现为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+            "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
             "name": "status",
             "type": "string"
           },
@@ -976,47 +746,20 @@
       "method": "POST",
       "path": "/_internal/method-call/storage",
       "title": "内部方法调用",
-      "description": "Runtime 内部调用 storage 注册方法；当前支持 BindBusinessObject 和 SoftDeleteResource。",
+      "description": "Runtime 内部方法调用入口；当前代码定义了 BindBusinessObject 和 SoftDeleteResource 的注册函数，但初始化流程未调用注册函数，因此默认没有已注册方法。",
       "auth": "api_key",
       "params": [
         {
-          "constraint": "BindBusinessObject=绑定资源到业务对象，SoftDeleteResource=软删除资源",
+          "constraint": "必须匹配 Methods 表中已注册的方法名；当前默认无已注册方法",
           "description": "要调用的内部方法名称，由 runtime 或其他后端模块传入。",
           "name": "method",
           "required": true,
           "type": "string"
         },
         {
-          "constraint": "不同 method 使用不同字段；资源 ID 支持标准 UUID 或历史 12 位 base62，用户 ID 仍为 12 位 base62；业务对象类型和值需同时有效",
-          "description": "内部方法参数对象，用于传递资源、用户和业务对象绑定信息。",
-          "fields": [
-            {
-              "description": "单个资源 ID；支持新上传资源的标准 UUID 和历史 12 位短 ID，BindBusinessObject 和 SoftDeleteResource 都可使用。",
-              "name": "resource_id",
-              "type": "string"
-            },
-            {
-              "description": "批量绑定的资源 ID 列表；每项支持标准 UUID 或历史 12 位短 ID，仅 BindBusinessObject 使用。",
-              "item_type": "string",
-              "name": "resource_ids",
-              "type": "array"
-            },
-            {
-              "description": "资源归属用户 ID；绑定时用于限制只能绑定该用户资源，空值表示系统资源。",
-              "name": "user_id",
-              "type": "string"
-            },
-            {
-              "description": "绑定目标业务对象类型；recharge_order=充值订单，user_profile=用户资料。",
-              "name": "business_object_type",
-              "type": "string"
-            },
-            {
-              "description": "绑定目标业务记录编号。",
-              "name": "business_object_id",
-              "type": "string"
-            }
-          ],
+          "constraint": "自由 JSON 对象；由具体注册方法自行解释，当前默认无固定子结构",
+          "description": "内部方法参数对象；当前实现没有在启动时注册具体方法，因此该对象没有稳定业务字段。",
+          "fields": [],
           "name": "args",
           "required": false,
           "type": "object"
@@ -1024,245 +767,42 @@
       ],
       "response": {
         "data_type": "object",
-        "description": "返回内部方法执行结果；单资源绑定或软删除返回资源详情，批量绑定返回 resources 列表。",
+        "description": "返回内部方法执行结果；data 是注册方法的原样返回值，当前默认不会进入成功分支。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
-            "msg": "请求体解析失败、method 为空、方法未注册、参数非法、资源不存在或方法执行失败",
+            "msg": "请求体解析失败、method 为空、方法未注册、方法 panic 或方法执行失败",
             "status": 1
           }
         ],
-        "fields": [
-          {
-            "description": "批量绑定时返回的资源详情列表；单资源方法可能直接返回同结构的资源对象而非包一层 resources。",
-            "fields": [
-              {
-                "description": "资源唯一标识。",
-                "name": "resource_id",
-                "type": "string"
-              },
-              {
-                "description": "资源当前绑定批次 ID。",
-                "name": "batch_id",
-                "type": "string"
-              },
-              {
-                "description": "是否为目标业务对象当前有效资源。",
-                "name": "is_current",
-                "type": "boolean"
-              },
-              {
-                "description": "资源归属用户标识。",
-                "name": "user_id",
-                "type": "string"
-              },
-              {
-                "description": "资源业务用途。",
-                "name": "feature",
-                "type": "string"
-              },
-              {
-                "description": "资源绑定后的业务对象类型。",
-                "name": "business_object_type",
-                "type": "string"
-              },
-              {
-                "description": "资源绑定后的业务记录编号。",
-                "name": "business_object_id",
-                "type": "string"
-              },
-              {
-                "description": "图片公网访问地址。",
-                "name": "public_url",
-                "type": "string"
-              },
-              {
-                "description": "现有实现为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
-                "name": "status",
-                "type": "string"
-              },
-              {
-                "description": "图片 MIME 类型。",
-                "name": "mime_type",
-                "type": "string"
-              },
-              {
-                "description": "图片文件大小，单位字节。",
-                "name": "file_size_bytes",
-                "type": "number"
-              },
-              {
-                "description": "资源上传成功时的 Unix 秒级时间戳。",
-                "name": "uploaded_ts",
-                "type": "number"
-              },
-              {
-                "description": "用户上传时的原始文件名。",
-                "name": "original_filename",
-                "type": "string"
-              },
-              {
-                "description": "R2 对象 key。",
-                "name": "storage_key",
-                "type": "string"
-              },
-              {
-                "description": "服务端确认的文件扩展名。",
-                "name": "file_ext",
-                "type": "string"
-              },
-              {
-                "description": "资源软删除时间；未删除时为 0。",
-                "name": "deleted_ts",
-                "type": "number"
-              },
-              {
-                "description": "R2 对象清理时间；未清理时为 0。",
-                "name": "cleaned_ts",
-                "type": "number"
-              }
-            ],
-            "name": "resources",
-            "type": "array"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源唯一标识。",
-            "name": "resource_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源当前批次 ID。",
-            "name": "batch_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的当前有效标记。",
-            "name": "is_current",
-            "type": "boolean"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源归属用户标识。",
-            "name": "user_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源业务用途。",
-            "name": "feature",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的业务对象类型。",
-            "name": "business_object_type",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的业务记录编号。",
-            "name": "business_object_id",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片公网访问地址。",
-            "name": "public_url",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
-            "name": "status",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片 MIME 类型。",
-            "name": "mime_type",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的图片文件大小，单位字节。",
-            "name": "file_size_bytes",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的资源上传 Unix 秒级时间戳。",
-            "name": "uploaded_ts",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的原始文件名。",
-            "name": "original_filename",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的 R2 对象 key。",
-            "name": "storage_key",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的文件扩展名。",
-            "name": "file_ext",
-            "type": "string"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的软删除 Unix 秒级时间戳；未删除时为 0。",
-            "name": "deleted_ts",
-            "type": "number"
-          },
-          {
-            "description": "单资源绑定或软删除时直接返回的清理 Unix 秒级时间戳；未清理时为 0。",
-            "name": "cleaned_ts",
-            "type": "number"
-          }
-        ]
+        "fields": []
       },
       "request_example": {
         "args": {
           "business_object_id": "recharge:202606100001",
           "business_object_type": "recharge_order",
-          "resource_ids": [
-            "550e8400-e29b-41d4-a716-446655440000"
-          ],
-          "user_id": "U1a2B3c4D5e6"
+          "resource_id": "550e8400-e29b-41d4-a716-446655440000"
         },
         "method": "BindBusinessObject"
       },
       "response_example": {
-        "data": {
-          "resources": [
-            {
-              "batch_id": "LmN456pQr012",
-              "business_object_id": "recharge:202606100001",
-              "business_object_type": "recharge_order",
-              "cleaned_ts": 0,
-              "deleted_ts": 0,
-              "feature": "recharge_voucher",
-              "file_ext": "jpg",
-              "file_size_bytes": 245760,
-              "is_current": true,
-              "mime_type": "image/jpeg",
-              "original_filename": "voucher-front.jpg",
-              "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
-              "resource_id": "550e8400-e29b-41d4-a716-446655440000",
-              "status": "normal",
-              "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
-              "uploaded_ts": 1781107200,
-              "user_id": "U1a2B3c4D5e6"
-            }
-          ]
-        },
-        "msg": "",
-        "status": 0
+        "data": null,
+        "msg": "未注册的方法: BindBusinessObject",
+        "status": 1
       }
     },
     {
       "method": "POST",
       "path": "/_internal/scheduled-trigger/storage",
       "title": "内部定时任务触发",
-      "description": "Runtime 内部手动触发 storage 定时任务并以 text/event-stream 输出执行日志；当前任务为 cleanup_deleted_resources。",
+      "description": "Runtime 内部手动触发 storage 定时任务并以 text/event-stream 输出执行日志；当前代码定义了 cleanup_deleted_resources 注册函数，但初始化流程未调用注册函数，因此默认没有已注册任务。",
       "auth": "api_key",
       "params": [
         {
-          "constraint": "cleanup_deleted_resources=清理超过保留期的已软删除资源",
+          "constraint": "必须匹配 ScheduledTasks 表中已注册的任务名；当前默认无已注册任务",
           "description": "要手动触发的定时任务名称。",
           "name": "task_name",
           "required": true,
@@ -1271,18 +811,18 @@
       ],
       "response": {
         "data_type": "null",
-        "description": "成功时返回 SSE 文本流，每条 data 行是一段中文执行日志，不使用 JSON data 包装。",
+        "description": "注册任务存在时返回 SSE 文本流；当前默认任务未注册，请求 cleanup_deleted_resources 会返回 HTTP 404。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
-            "msg": "请求体解析失败或 task_name 为空",
+            "msg": "请求体解析失败或 task_name 为空，HTTP 级 plain text 响应",
             "status": 400
           },
           {
-            "msg": "未注册的定时任务",
+            "msg": "未注册的定时任务，HTTP 级 plain text 响应",
             "status": 404
           }
         ],
@@ -1293,15 +833,15 @@
       },
       "response_example": {
         "data": null,
-        "msg": "data: [2026-06-10T12:00:00Z] 任务 cleanup_deleted_resources 开始执行\\n\\ndata: 成功清理 1 个资源\\n\\n",
-        "status": 0
+        "msg": "未注册的定时任务: cleanup_deleted_resources",
+        "status": 404
       }
     },
     {
       "method": "POST",
       "path": "/_internal/selftest/storage",
       "title": "废弃自测入口",
-      "description": "旧版内部自测入口，当前仅保留鉴权和 410 语义提示；流水线已改为直接执行 tests/*.test.json。",
+      "description": "旧版内部自测入口，当前仅保留内部 token 校验和废弃提示；流水线已改为直接执行 tests/*.test.json。",
       "auth": "api_key",
       "params": [],
       "response": {
@@ -1309,7 +849,7 @@
         "description": "通过内部 token 校验后固定返回废弃提示。",
         "error_codes": [
           {
-            "msg": "X-Internal-Token 缺失或不匹配",
+            "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应",
             "status": 401
           },
           {
@@ -1386,9 +926,10 @@
     "allows_new_work_while_unloading": false
   },
   "related_requirements": [
+    101,
     99
   ],
-  "last_generated_at": "2026-06-10T12:26:38Z",
+  "last_generated_at": "2026-06-10T14:39:39Z",
   "warnings": [
     "已合并 API 接口表中的 3 条接口"
   ]
