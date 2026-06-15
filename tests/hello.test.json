@@ -10,6 +10,14 @@
         "status": 0,
         "data.module": "storage"
       }
+    },
+    {
+      "name": "错误方法返回失败",
+      "kind": "http",
+      "actor": "anonymous",
+      "method": "POST",
+      "path": "/api/storage/hello",
+      "expect_status": 405
     }
   ]
 }

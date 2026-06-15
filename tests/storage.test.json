@@ -8,6 +8,14 @@
       "method": "POST",
       "path": "/_internal/method-call/storage",
       "expect_status": 401
+    },
+    {
+      "name": "未授权访问失败",
+      "kind": "http",
+      "actor": "anonymous",
+      "method": "POST",
+      "path": "/_internal/method-call/storage",
+      "expect_status": 401
     }
   ]
 }

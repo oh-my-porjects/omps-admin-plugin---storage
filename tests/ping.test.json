@@ -6,7 +6,18 @@
       "kind": "http",
       "actor": "admin",
       "expect_status": 200,
-      "expect_field": {"status": 0, "msg": "pong"}
+      "expect_field": {
+        "status": 0,
+        "msg": "pong"
+      }
+    },
+    {
+      "name": "未授权访问失败",
+      "kind": "http",
+      "actor": "anonymous",
+      "method": "POST",
+      "path": "/api/storage/admin/ping",
+      "expect_status": 401
     }
   ]
 }
