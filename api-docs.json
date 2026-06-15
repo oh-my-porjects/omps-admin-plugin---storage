@@ -39,7 +39,15 @@
           "version": "20260610.1"
         },
         "msg": "ok"
-      }
+      },
+      "rules": [
+        {
+          "category": "business",
+          "title": "模块探活 返回当前事实",
+          "body": "该查询接口必须按照当前代码和数据表返回稳定字段结构；分页、筛选、排序和空结果语义必须与 api-docs.json 保持一致。接口职责：返回 storage 模块名称和当前版本，用于确认模块已被 runtime 正常加载。",
+          "code_loc": "main.go:134"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -77,7 +85,12 @@
           "type": "string",
           "required": false,
           "constraint": "为空或枚举：recharge_order=充值订单，user_profile=用户资料；必须与 business_object_id 同时为空或同时填写",
-          "description": "图片绑定的业务对象类型；为空表示暂存资源尚未绑定具体业务记录。"
+          "description": "图片绑定的业务对象类型；为空表示暂存资源尚未绑定具体业务记录。",
+          "enum": {
+            "": "暂存资源未绑定业务对象",
+            "recharge_order": "充值订单",
+            "user_profile": "用户资料"
+          }
         },
         {
           "name": "business_object_id",
@@ -153,7 +166,12 @@
               {
                 "name": "status",
                 "type": "string",
-                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。"
+                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+                "enum": {
+                  "normal": "正常",
+                  "deleted": "已软删除",
+                  "cleaned": "对象已清理"
+                }
               },
               {
                 "name": "mime_type",
@@ -287,7 +305,12 @@
           "type": "string",
           "required": false,
           "constraint": "空或枚举：normal=正常，deleted=已软删除，cleaned=对象已清理；现有实现暂为字符串状态",
-          "description": "按资源生命周期状态筛选。"
+          "description": "按资源生命周期状态筛选。",
+          "enum": {
+            "normal": "正常",
+            "deleted": "已软删除",
+            "cleaned": "对象已清理"
+          }
         },
         {
           "name": "uploaded_from_ts",
@@ -377,7 +400,12 @@
               {
                 "name": "status",
                 "type": "string",
-                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。"
+                "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+                "enum": {
+                  "normal": "正常",
+                  "deleted": "已软删除",
+                  "cleaned": "对象已清理"
+                }
               },
               {
                 "name": "mime_type",
@@ -455,7 +483,15 @@
           "page_size": 20
         },
         "msg": ""
-      }
+      },
+      "rules": [
+        {
+          "category": "security",
+          "title": "查询资源列表 鉴权边界",
+          "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：后台按用户、用途、业务对象、状态和上传时间分页查询资源；默认只返回当前有效且正常的资源。",
+          "code_loc": "main.go:136"
+        }
+      ]
     },
     {
       "method": "GET",
@@ -520,7 +556,12 @@
           {
             "name": "status",
             "type": "string",
-            "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。"
+            "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+            "enum": {
+              "normal": "正常",
+              "deleted": "已软删除",
+              "cleaned": "对象已清理"
+            }
           },
           {
             "name": "mime_type",
@@ -600,7 +641,15 @@
           "cleaned_ts": 0
         },
         "msg": ""
-      }
+      },
+      "rules": [
+        {
+          "category": "security",
+          "title": "查询资源详情 鉴权边界",
+          "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：后台按资源 ID 查询图片资源详情，包含原始文件名、对象存储 key、删除和清理时间。",
+          "code_loc": "main.go:137"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -625,7 +674,15 @@
         "status": 0,
         "data": null,
         "msg": "pong"
-      }
+      },
+      "rules": [
+        {
+          "category": "security",
+          "title": "后台连通性检查 鉴权边界",
+          "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：管理后台用于确认 storage 模块后台 API 可达。",
+          "code_loc": "main.go:139"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -779,7 +836,15 @@
         "status": 1,
         "data": null,
         "msg": "selftest 端点已废弃；流水线 API 自动测试改由 admin-server 直接读 tests/*.test.json 执行（见 scheduler_apitest_executor.go）。开发者本机自测单接口请直接 curl runtime 8080 业务端口并带上 X-API-Key / X-User-ID。"
-      }
+      },
+      "rules": [
+        {
+          "category": "security",
+          "title": "废弃自测入口 鉴权边界",
+          "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：旧版内部自测入口，当前仅保留内部 token 校验和废弃提示；流水线已改为直接执行 tests/*.test.json。",
+          "code_loc": "selftest.go:25"
+        }
+      ]
     }
   ],
   "ws_events": []
