@@ -1,11 +1,12 @@
-$schema: admin-web-spec/v2
+$schema: admin-web-spec/v3
 module: storage
 module_title: 文件存储
 menus:
   - key: resources
     title: 资源列表
     icon: file
-    roles: [admin, developer, operator]
+    permission_key: storage.resources.page
+    default_effect: visible
     views: [resource_list]
 views:
   - key: resource_list
@@ -79,34 +80,47 @@ views:
         type: daterange
       - key: include_history
         title: 包含历史
-        type: boolean
+        type: bool
     columns:
       - field: resource_id
         title: 资源 ID
+        permission_key: storage.resource_list.field.resource_id
+        default_effect: visible
       - field: user_id
         title: 上传用户 ID
+        permission_key: storage.resource_list.field.user_id
+        default_effect: visible
       - field: feature
         title: 资源类型
+        permission_key: storage.resource_list.field.feature
+        default_effect: visible
       - field: business_object_type
         title: 业务对象类型
+        permission_key: storage.resource_list.field.business_object_type
+        default_effect: visible
       - field: business_object_id
         title: 业务对象 ID
+        permission_key: storage.resource_list.field.business_object_id
+        default_effect: visible
       - field: public_url
         title: 文件名
+        permission_key: storage.resource_list.field.public_url
+        default_effect: visible
       - field: file_size_bytes
         title: 大小
         render: number
+        permission_key: storage.resource_list.field.file_size_bytes
+        default_effect: visible
       - field: mime_type
         title: 类型
+        permission_key: storage.resource_list.field.mime_type
+        default_effect: visible
       - field: status
         title: 状态
+        permission_key: storage.resource_list.field.status
+        default_effect: visible
       - field: uploaded_ts
         title: 上传时间
         render: datetime
-roles:
-  - code: admin
-    title: 超级管理员
-  - code: developer
-    title: 开发者
-  - code: operator
-    title: 运维
+        permission_key: storage.resource_list.field.uploaded_ts
+        default_effect: visible
