@@ -1,8 +1,9 @@
 package main
 
-// api-docs.json 字段协议(api-kb 三方对齐,plan §A.4):
+// api-docs/ 字段协议(api-kb 三方对齐,plan §A.4):
 //
-//   doc-writeback 阶段 AI 自动生成 modules/<name>/api-docs.json,平台
+//   doc-writeback 阶段 AI 自动生成 modules/<name>/api-docs/,其中 manifest.json 做模块索引,
+//   endpoints/*.json 和 ws-events/*.json 分别承载 HTTP 接口和在线推送事件;平台
 //   api-kb 在原有字段基础上增加两个:
 //
 //     - endpoint_key: "METHOD /path"(全大写 method + 单空格 + path)
@@ -17,7 +18,7 @@ package main
 //       平台对齐 job 会把这些规则与需求规格、技术方案融合,做三方溯源。
 //       无规则时省略整个 rules 字段(不要输出空数组占位)。
 //
-//   完整示例:examples/api-docs.example.json
+//   完整示例:api-docs/manifest.json + api-docs/endpoints/*.json + api-docs/ws-events/*.json
 
 import (
 	"context"

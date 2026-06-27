@@ -5,7 +5,7 @@
 ### Always Do
 
 - 新增 `/admin/*` 接口时同步更新 `admin-web.yaml`：菜单 + 关键字段 + 危险操作清单
-- `admin-web.yaml` 里引用的 `endpoint_key`（stats.api / dangerous）必须能在 `api-docs.json` 里找到对应接口
+- `admin-web.yaml` 里引用的 `endpoint_key`（stats.api / dangerous）必须能在 `api-docs/endpoints/` 里找到对应接口
 - 危险操作（封号 / 删数据 / 改配置等）必须列入 `dangerous`，平台会自动加二次确认 + 强制 ctx.Audit 记录 before/after
 - 完整规范见 `docs/admin-web-yaml-spec.md`（位于 workspace 根目录）
 
