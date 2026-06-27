@@ -1,0 +1,44 @@
+{
+  "module": "storage",
+  "module_title": "文件存储",
+  "version": 1,
+  "endpoints": [
+    {
+      "key": "GET /api/storage/hello",
+      "file": "endpoints/get_api_storage_hello.json"
+    },
+    {
+      "key": "POST /api/storage/upload",
+      "file": "endpoints/post_api_storage_upload.json"
+    },
+    {
+      "key": "GET /api/storage/admin/resource-list",
+      "file": "endpoints/get_api_storage_admin_resource_list.json"
+    },
+    {
+      "key": "GET /api/storage/admin/resource-detail",
+      "file": "endpoints/get_api_storage_admin_resource_detail.json"
+    },
+    {
+      "key": "POST /api/storage/admin/ping",
+      "file": "endpoints/post_api_storage_admin_ping.json"
+    },
+    {
+      "key": "POST /_internal/method-call/storage",
+      "file": "endpoints/post_internal_method_call_storage.json"
+    },
+    {
+      "key": "POST /_internal/scheduled-trigger/storage",
+      "file": "endpoints/post_internal_scheduled_trigger_storage.json"
+    },
+    {
+      "key": "POST /_internal/selftest/storage",
+      "file": "endpoints/post_internal_selftest_storage.json"
+    }
+  ],
+  "ws_events": [],
+  "components": {
+    "schemas": [],
+    "enums": []
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "method": "POST",
+  "path": "/api/storage/upload",
+  "endpoint_key": "POST /api/storage/upload",
+  "title": "上传图片资源",
+  "description": "登录用户上传一个或多个图片文件到 R2，并保存资源元数据；绑定同一业务对象时，新批次会替换旧当前批次。",
+  "auth": "login",
+  "params": [
+    {
+      "name": "files",
+      "type": "array",
+      "fields": [],
+      "required": true,
+      "constraint": "multipart/form-data 文件字段；至少 1 个文件；仅允许 JPG、JPEG、PNG、WEBP；同批次不能重复提交内容完全相同的文件",
+      "description": "本次上传的图片集合，批次内所有图片共享同一业务用途和绑定对象；文件流没有固定 JSON 子字段。"
+    },
+    {
+      "name": "file",
+      "type": "object",
+      "fields": [],
+      "required": false,
+      "constraint": "multipart/form-data 兼容字段；当 files 为空时读取；同样只允许图片文件",
+      "description": "旧版单文件上传字段，新接入方应优先使用 files。"
+    },
+    {
+      "name": "feature",
+      "type": "string",
+      "required": true,
+      "constraint": "仅允许 recharge_voucher=充值凭证截图",
+      "description": "资源业务用途，决定后续哪个业务流程可以消费这些图片。"
+    },
+    {
+      "name": "business_object_type",
+      "type": "string",
+      "required": false,
+      "constraint": "为空或枚举：recharge_order=充值订单，user_profile=用户资料；必须与 business_object_id 同时为空或同时填写",
+      "description": "图片绑定的业务对象类型；为空表示暂存资源尚未绑定具体业务记录。",
+      "enum": {
+        "": "暂存资源未绑定业务对象",
+        "recharge_order": "充值订单",
+        "user_profile": "用户资料"
+      }
+    },
+    {
+      "name": "business_object_id",
+      "type": "string",
+      "required": false,
+      "constraint": "最多 100 字符；仅允许字母、数字、下划线、点、冒号、短横线；必须与 business_object_type 同时为空或同时填写",
+      "description": "图片绑定的具体业务记录编号，用于让业务模块按对象找到当前有效图片。"
+    }
+  ],
+  "request_example": {
+    "feature": "recharge_voucher",
+    "business_object_type": "recharge_order",
+    "business_object_id": "recharge:202606100001",
+    "files": [
+      "voucher-front.jpg",
+      "voucher-back.png"
+    ]
+  },
+  "response": {
+    "description": "返回本次上传批次和批次内生成的资源；新上传的 resource_id 为标准 UUID，历史资源可能仍是 12 位短 ID。",
+    "data_type": "object",
+    "fields": [
+      {
+        "name": "batch_id",
+        "type": "string",
+        "description": "本次上传批次 ID，批次内多张图片共享该值。"
+      },
+      {
+        "name": "feature",
+        "type": "string",
+        "description": "本批图片的业务用途；当前 recharge_voucher 表示充值凭证截图。"
+      },
+      {
+        "name": "business_object_type",
+        "type": "string",
+        "description": "本批图片绑定的业务对象类型；为空表示未绑定。"
+      },
+      {
+        "name": "business_object_id",
+        "type": "string",
+        "description": "本批图片绑定的业务记录编号；为空表示未绑定。"
+      },
+      {
+        "name": "uploaded_ts",
+        "type": "number",
+        "description": "本批图片完成元数据保存时的 Unix 秒级时间戳。"
+      },
+      {
+        "name": "resources",
+        "type": "array",
+        "description": "本次上传成功的资源列表。",
+        "fields": [
+          {
+            "name": "resource_id",
+            "type": "string",
+            "description": "资源唯一标识；业务模块后续绑定、查询或删除时使用。"
+          },
+          {
+            "name": "public_url",
+            "type": "string",
+            "description": "图片公网访问地址，前端可直接用于展示。"
+          },
+          {
+            "name": "storage_key",
+            "type": "string",
+            "description": "R2 对象 key，用于服务端排查和清理对象。"
+          },
+          {
+            "name": "feature",
+            "type": "string",
+            "description": "单张图片的业务用途，与本批 feature 一致。"
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+            "enum": {
+              "normal": "正常",
+              "deleted": "已软删除",
+              "cleaned": "对象已清理"
+            }
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "description": "服务端根据文件内容识别出的图片 MIME 类型。"
+          },
+          {
+            "name": "file_size_bytes",
+            "type": "number",
+            "description": "图片文件大小，单位字节。"
+          },
+          {
+            "name": "uploaded_ts",
+            "type": "number",
+            "description": "单张图片上传成功时的 Unix 秒级时间戳。"
+          }
+        ]
+      }
+    ],
+    "error_codes": [
+      {
+        "status": 8001,
+        "msg": "未登录或登录态无效"
+      },
+      {
+        "status": 8002,
+        "msg": "缺少上传文件、文件为空、同批次文件重复或读取文件失败"
+      },
+      {
+        "status": 8003,
+        "msg": "资源功能类型缺失或格式非法"
+      },
+      {
+        "status": 8004,
+        "msg": "不支持的图片格式，仅允许 JPG、JPEG、PNG、WEBP"
+      },
+      {
+        "status": 8005,
+        "msg": "业务对象类型或业务对象 ID 格式非法"
+      },
+      {
+        "status": 8006,
+        "msg": "R2 存储配置缺失或不可用"
+      },
+      {
+        "status": 8007,
+        "msg": "上传 R2 失败"
+      },
+      {
+        "status": 8008,
+        "msg": "资源元数据保存失败"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 0,
+    "data": {
+      "batch_id": "AbC123xYz789",
+      "feature": "recharge_voucher",
+      "business_object_type": "recharge_order",
+      "business_object_id": "recharge:202606100001",
+      "uploaded_ts": 1781107200,
+      "resources": [
+        {
+          "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+          "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+          "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+          "feature": "recharge_voucher",
+          "status": "normal",
+          "mime_type": "image/jpeg",
+          "file_size_bytes": 245760,
+          "uploaded_ts": 1781107200
+        }
+      ]
+    },
+    "msg": ""
+  },
+  "rules": [
+    {
+      "category": "constraint",
+      "title": "上传资源用途白名单",
+      "body": "上传接口当前只接受 feature=recharge_voucher，其他用途会返回 8003。",
+      "code_loc": "config.go:58-60"
+    },
+    {
+      "category": "business",
+      "title": "同一业务对象只保留最新当前批次",
+      "body": "同一 feature、business_object_type、business_object_id 再次上传时，旧资源的 is_current 会被置为 false，新批次成为当前有效资源。",
+      "code_loc": "resource_store.go:95-103"
+    }
+  ]
+}

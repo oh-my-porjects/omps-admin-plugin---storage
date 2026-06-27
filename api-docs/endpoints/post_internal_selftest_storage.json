@@ -1,0 +1,37 @@
+{
+  "method": "POST",
+  "path": "/_internal/selftest/storage",
+  "endpoint_key": "POST /_internal/selftest/storage",
+  "title": "废弃自测入口",
+  "description": "旧版内部自测入口，当前仅保留内部 token 校验和废弃提示；流水线已改为直接执行 tests/*.test.json。",
+  "auth": "api_key",
+  "params": [],
+  "response": {
+    "description": "通过内部 token 校验后固定返回废弃提示。",
+    "data_type": "null",
+    "fields": [],
+    "error_codes": [
+      {
+        "status": 401,
+        "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应"
+      },
+      {
+        "status": 1,
+        "msg": "selftest 端点已废弃；请改由 admin-server 执行 tests/*.test.json"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 1,
+    "data": null,
+    "msg": "selftest 端点已废弃；流水线 API 自动测试改由 admin-server 直接读 tests/*.test.json 执行（见 scheduler_apitest_executor.go）。开发者本机自测单接口请直接 curl runtime 8080 业务端口并带上 X-API-Key / X-User-ID。"
+  },
+  "rules": [
+    {
+      "category": "security",
+      "title": "废弃自测入口 鉴权边界",
+      "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：旧版内部自测入口，当前仅保留内部 token 校验和废弃提示；流水线已改为直接执行 tests/*.test.json。",
+      "code_loc": "selftest.go:25"
+    }
+  ]
+}

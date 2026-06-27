@@ -1,0 +1,67 @@
+{
+  "method": "POST",
+  "path": "/_internal/method-call/storage",
+  "endpoint_key": "POST /_internal/method-call/storage",
+  "title": "内部方法调用",
+  "description": "Runtime 内部方法调用入口；当前代码定义了 BindBusinessObject 和 SoftDeleteResource 的注册函数，但初始化流程未调用注册函数，因此默认没有已注册方法。",
+  "auth": "api_key",
+  "params": [
+    {
+      "name": "method",
+      "type": "string",
+      "required": true,
+      "constraint": "必须匹配 Methods 表中已注册的方法名；当前默认无已注册方法",
+      "description": "要调用的内部方法名称，由 runtime 或其他后端模块传入。"
+    },
+    {
+      "name": "args",
+      "type": "object",
+      "fields": [],
+      "required": false,
+      "constraint": "自由 JSON 对象；由具体注册方法自行解释，当前默认无固定子结构",
+      "description": "内部方法参数对象；当前实现没有在启动时注册具体方法，因此该对象没有稳定业务字段。"
+    }
+  ],
+  "request_example": {
+    "method": "BindBusinessObject",
+    "args": {
+      "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+      "business_object_type": "recharge_order",
+      "business_object_id": "recharge:202606100001"
+    }
+  },
+  "response": {
+    "description": "返回内部方法执行结果；data 是注册方法的原样返回值，当前默认不会进入成功分支。",
+    "data_type": "object",
+    "fields": [],
+    "error_codes": [
+      {
+        "status": 401,
+        "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应"
+      },
+      {
+        "status": 1,
+        "msg": "请求体解析失败、method 为空、方法未注册、方法 panic 或方法执行失败"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 1,
+    "data": null,
+    "msg": "未注册的方法: BindBusinessObject"
+  },
+  "rules": [
+    {
+      "category": "security",
+      "title": "内部方法必须携带内部 token",
+      "body": "入口会校验 X-Internal-Token 与 RUNTIME_INTERNAL_TOKEN，缺失或不匹配时直接返回 HTTP 401。",
+      "code_loc": "method_call.go:33-37"
+    },
+    {
+      "category": "flow",
+      "title": "当前默认无已注册内部方法",
+      "body": "registerStorageMethods 定义了方法注册逻辑，但当前代码没有调用它；因此默认请求会返回未注册的方法。",
+      "code_loc": "methods.go:9-14"
+    }
+  ]
+}

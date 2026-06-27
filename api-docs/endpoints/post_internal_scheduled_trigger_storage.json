@@ -1,0 +1,58 @@
+{
+  "method": "POST",
+  "path": "/_internal/scheduled-trigger/storage",
+  "endpoint_key": "POST /_internal/scheduled-trigger/storage",
+  "title": "内部定时任务触发",
+  "description": "Runtime 内部手动触发 storage 定时任务并以 text/event-stream 输出执行日志；当前代码定义了 cleanup_deleted_resources 注册函数，但初始化流程未调用注册函数，因此默认没有已注册任务。",
+  "auth": "api_key",
+  "params": [
+    {
+      "name": "task_name",
+      "type": "string",
+      "required": true,
+      "constraint": "必须匹配 ScheduledTasks 表中已注册的任务名；当前默认无已注册任务",
+      "description": "要手动触发的定时任务名称。"
+    }
+  ],
+  "request_example": {
+    "task_name": "cleanup_deleted_resources"
+  },
+  "response": {
+    "description": "注册任务存在时返回 SSE 文本流；当前默认任务未注册，请求 cleanup_deleted_resources 会返回 HTTP 404。",
+    "data_type": "null",
+    "fields": [],
+    "error_codes": [
+      {
+        "status": 401,
+        "msg": "X-Internal-Token 缺失或不匹配，HTTP 级 plain text 响应"
+      },
+      {
+        "status": 400,
+        "msg": "请求体解析失败或 task_name 为空，HTTP 级 plain text 响应"
+      },
+      {
+        "status": 404,
+        "msg": "未注册的定时任务，HTTP 级 plain text 响应"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 404,
+    "data": null,
+    "msg": "未注册的定时任务: cleanup_deleted_resources"
+  },
+  "rules": [
+    {
+      "category": "concurrency",
+      "title": "已注册任务会串行执行",
+      "body": "内部触发入口使用全局锁包裹任务执行，避免同一模块多个手动触发任务并发运行。",
+      "code_loc": "scheduled_trigger.go:69-75"
+    },
+    {
+      "category": "flow",
+      "title": "当前默认无已注册定时任务",
+      "body": "registerStorageScheduledTasks 定义了 cleanup_deleted_resources 注册逻辑，但当前代码没有调用它；因此默认请求会返回未注册的定时任务。",
+      "code_loc": "cleanup.go:14-18"
+    }
+  ]
+}

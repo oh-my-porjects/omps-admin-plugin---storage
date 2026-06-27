@@ -1,0 +1,33 @@
+{
+  "method": "POST",
+  "path": "/api/storage/admin/ping",
+  "endpoint_key": "POST /api/storage/admin/ping",
+  "title": "后台连通性检查",
+  "description": "管理后台用于确认 storage 模块后台 API 可达。",
+  "auth": "api_key",
+  "params": [],
+  "response": {
+    "description": "成功时 data 为 null，msg 为 pong。",
+    "data_type": "null",
+    "fields": [],
+    "error_codes": [
+      {
+        "status": 401,
+        "msg": "管理端口 API Key 缺失或无效时由 runtime 拒绝请求"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 0,
+    "data": null,
+    "msg": "pong"
+  },
+  "rules": [
+    {
+      "category": "security",
+      "title": "后台连通性检查 鉴权边界",
+      "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：管理后台用于确认 storage 模块后台 API 可达。",
+      "code_loc": "main.go:139"
+    }
+  ]
+}

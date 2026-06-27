@@ -1,0 +1,47 @@
+{
+  "method": "GET",
+  "path": "/api/storage/hello",
+  "endpoint_key": "GET /api/storage/hello",
+  "title": "模块探活",
+  "description": "返回 storage 模块名称和当前版本，用于确认模块已被 runtime 正常加载。",
+  "auth": "public",
+  "params": [],
+  "response": {
+    "description": "模块基础信息。",
+    "data_type": "object",
+    "fields": [
+      {
+        "name": "module",
+        "type": "string",
+        "description": "当前响应来自的模块标识，固定为 storage。"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "description": "模块部署版本，由平台编译加载时注入；本地未注入时为 dev。"
+      }
+    ],
+    "error_codes": [
+      {
+        "status": 500,
+        "msg": "runtime 未加载模块或路由注册失败时由平台返回 HTTP 级错误；handler 本身不产生业务错误码"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 0,
+    "data": {
+      "module": "storage",
+      "version": "20260610.1"
+    },
+    "msg": "ok"
+  },
+  "rules": [
+    {
+      "category": "business",
+      "title": "模块探活 返回当前事实",
+      "body": "该查询接口必须按照当前代码和数据表返回稳定字段结构；分页、筛选、排序和空结果语义必须与 api-docs.json 保持一致。接口职责：返回 storage 模块名称和当前版本，用于确认模块已被 runtime 正常加载。",
+      "code_loc": "main.go:134"
+    }
+  ]
+}

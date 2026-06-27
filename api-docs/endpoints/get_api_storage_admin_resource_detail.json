@@ -1,0 +1,158 @@
+{
+  "method": "GET",
+  "path": "/api/storage/admin/resource-detail",
+  "endpoint_key": "GET /api/storage/admin/resource-detail",
+  "title": "查询资源详情",
+  "description": "后台按资源 ID 查询图片资源详情，包含原始文件名、对象存储 key、删除和清理时间。",
+  "auth": "api_key",
+  "params": [
+    {
+      "name": "resource_id",
+      "type": "string",
+      "required": true,
+      "constraint": "标准 UUID 或历史 12 位 base62 ID",
+      "description": "要查询的图片资源 ID，用于定位单条资源记录；新上传资源使用标准 UUID。"
+    }
+  ],
+  "response": {
+    "description": "返回单个资源的完整后台详情。",
+    "data_type": "object",
+    "fields": [
+      {
+        "name": "resource_id",
+        "type": "string",
+        "description": "资源唯一标识。"
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "description": "上传批次 ID。"
+      },
+      {
+        "name": "is_current",
+        "type": "boolean",
+        "description": "是否仍是对应业务对象的当前有效资源。"
+      },
+      {
+        "name": "user_id",
+        "type": "string",
+        "description": "上传该资源的用户标识。"
+      },
+      {
+        "name": "feature",
+        "type": "string",
+        "description": "资源业务用途。"
+      },
+      {
+        "name": "business_object_type",
+        "type": "string",
+        "description": "资源绑定的业务对象类型。"
+      },
+      {
+        "name": "business_object_id",
+        "type": "string",
+        "description": "资源绑定的具体业务记录编号。"
+      },
+      {
+        "name": "public_url",
+        "type": "string",
+        "description": "图片公网访问地址。"
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "description": "现有实现暂为字符串状态：normal=正常，deleted=已软删除，cleaned=对象已清理。",
+        "enum": {
+          "normal": "正常",
+          "deleted": "已软删除",
+          "cleaned": "对象已清理"
+        }
+      },
+      {
+        "name": "mime_type",
+        "type": "string",
+        "description": "图片 MIME 类型。"
+      },
+      {
+        "name": "file_size_bytes",
+        "type": "number",
+        "description": "图片文件大小，单位字节。"
+      },
+      {
+        "name": "uploaded_ts",
+        "type": "number",
+        "description": "资源上传成功时的 Unix 秒级时间戳。"
+      },
+      {
+        "name": "original_filename",
+        "type": "string",
+        "description": "用户上传时的原始文件名，已做路径和空字符清理。"
+      },
+      {
+        "name": "storage_key",
+        "type": "string",
+        "description": "R2 对象 key，用于服务端定位和清理对象。"
+      },
+      {
+        "name": "file_ext",
+        "type": "string",
+        "description": "服务端根据文件内容确认的扩展名。"
+      },
+      {
+        "name": "deleted_ts",
+        "type": "number",
+        "description": "资源被软删除时的 Unix 秒级时间戳；未删除时为 0。"
+      },
+      {
+        "name": "cleaned_ts",
+        "type": "number",
+        "description": "R2 对象被清理完成时的 Unix 秒级时间戳；未清理时为 0。"
+      }
+    ],
+    "error_codes": [
+      {
+        "status": 8022,
+        "msg": "资源 ID 缺失或格式非法"
+      },
+      {
+        "status": 8023,
+        "msg": "资源不存在"
+      },
+      {
+        "status": 8024,
+        "msg": "查询资源详情失败"
+      }
+    ]
+  },
+  "response_example": {
+    "status": 0,
+    "data": {
+      "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+      "batch_id": "AbC123xYz789",
+      "is_current": true,
+      "user_id": "U1a2B3c4D5e6",
+      "feature": "recharge_voucher",
+      "business_object_type": "recharge_order",
+      "business_object_id": "recharge:202606100001",
+      "public_url": "https://cdn.example.com/prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+      "status": "normal",
+      "mime_type": "image/jpeg",
+      "file_size_bytes": 245760,
+      "uploaded_ts": 1781107200,
+      "original_filename": "voucher-front.jpg",
+      "storage_key": "prod/recharge_voucher/U1a2B3c4D5e6/2026/06/10/550e8400-e29b-41d4-a716-446655440000.jpg",
+      "file_ext": "jpg",
+      "deleted_ts": 0,
+      "cleaned_ts": 0
+    },
+    "msg": ""
+  },
+  "rules": [
+    {
+      "category": "security",
+      "title": "查询资源详情 鉴权边界",
+      "body": "该接口按 auth=api_key 执行访问控制；未满足身份、内部令牌、后台会话或 API key 要求时必须拒绝主流程。接口职责：后台按资源 ID 查询图片资源详情，包含原始文件名、对象存储 key、删除和清理时间。",
+      "code_loc": "main.go:137"
+    }
+  ]
+}
