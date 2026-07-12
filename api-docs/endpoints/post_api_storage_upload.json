@@ -9,6 +9,7 @@
     {
       "name": "files",
       "type": "array",
+      "in": "form_data",
       "fields": [],
       "required": true,
       "constraint": "multipart/form-data 文件字段；至少 1 个文件；仅允许 JPG、JPEG、PNG、WEBP；同批次不能重复提交内容完全相同的文件",
@@ -17,6 +18,7 @@
     {
       "name": "file",
       "type": "object",
+      "in": "form_data",
       "fields": [],
       "required": false,
       "constraint": "multipart/form-data 兼容字段；当 files 为空时读取；同样只允许图片文件",
@@ -25,6 +27,7 @@
     {
       "name": "feature",
       "type": "string",
+      "in": "form_data",
       "required": true,
       "constraint": "仅允许 recharge_voucher=充值凭证截图",
       "description": "资源业务用途，决定后续哪个业务流程可以消费这些图片。"
@@ -32,6 +35,7 @@
     {
       "name": "business_object_type",
       "type": "string",
+      "in": "form_data",
       "required": false,
       "constraint": "为空或枚举：recharge_order=充值订单，user_profile=用户资料；必须与 business_object_id 同时为空或同时填写",
       "description": "图片绑定的业务对象类型；为空表示暂存资源尚未绑定具体业务记录。",
@@ -44,6 +48,7 @@
     {
       "name": "business_object_id",
       "type": "string",
+      "in": "form_data",
       "required": false,
       "constraint": "最多 100 字符；仅允许字母、数字、下划线、点、冒号、短横线；必须与 business_object_type 同时为空或同时填写",
       "description": "图片绑定的具体业务记录编号，用于让业务模块按对象找到当前有效图片。"
