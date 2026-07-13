@@ -25,11 +25,11 @@ pages:
       - key: feature
         binding: feature
         label: { fallback: 资源用途 }
-        control: select
+        control: search
       - key: business_object_type
         binding: business_object_type
         label: { fallback: 业务对象类型 }
-        control: select
+        control: search
       - key: business_object_id
         binding: business_object_id
         label: { fallback: 业务对象 ID }
