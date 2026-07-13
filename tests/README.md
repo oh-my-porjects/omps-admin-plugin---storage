@@ -88,6 +88,6 @@
 
 ## 安全
 
-- `/_internal/selftest` 端点要求 `X-Internal-Token` header 匹配 `RUNTIME_INTERNAL_TOKEN` 环境变量
+- `/_internal/selftest` 端点要求 runtime 在完成内部令牌校验后注入 `X-Internal-Authenticated: true`
 - 外部请求一律 401
 - panic 兜底：单个 case panic 算单个失败，不影响其它 case

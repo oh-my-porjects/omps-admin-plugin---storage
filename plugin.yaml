@@ -26,7 +26,7 @@ description: "存储公共模块"
 #   os.Getenv("KEY") 拿不到值；ctx.Config 已经被 runtime 剥过前缀
 #
 # AI 约束：业务代码里所有 ctx.Config["X"] 调用都必须在这里声明，除了平台已注入的
-# 系统变量：PROJECT_ID / PROJECT_NAME / ENV / CONSUL_ADDR / RUNTIME_ADDR /
+# 系统变量：PROJECT_ID / PROJECT_NAME / ENV / CONSUL_ADDR /
 #         DB_HOST_LAN / DB_HOST_WG / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME /
 #         REDIS_HOST_LAN / REDIS_HOST_WG / REDIS_PORT / REDIS_PASSWORD /
 #         ADMIN_API_KEY

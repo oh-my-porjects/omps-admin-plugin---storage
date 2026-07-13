@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 )
 
 // MethodFunc 方法签名：入参 args（任意 JSON 解码后的 map），返回任意值（会被 JSON 序列化）
@@ -31,8 +30,7 @@ func init() {
 }
 
 func handleMethodCallInternal(w http.ResponseWriter, r *http.Request) {
-	expect := os.Getenv("RUNTIME_INTERNAL_TOKEN")
-	if expect == "" || r.Header.Get("X-Internal-Token") != expect {
+	if r.Header.Get("X-Internal-Authenticated") != "true" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}

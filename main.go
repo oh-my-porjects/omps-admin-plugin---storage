@@ -100,6 +100,9 @@ type PluginContext struct {
 	// IsOnline 查询用户是否有在线 WebSocket 连接
 	IsOnline func(userID string) bool
 
+	// InternalRequest 用于同一 runtime 内的相对路径调用；runtime 负责内部令牌和调用上下文。
+	InternalRequest func(context.Context, string, string, []byte, http.Header) (int, http.Header, []byte, error)
+
 	// RegisterAuth 登录模块向 runtime 注册鉴权回调
 	// 一个项目通常只有一个登录模块；普通业务模块这个字段保持 nil 即可
 	//

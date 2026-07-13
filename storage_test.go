@@ -179,10 +179,9 @@ func TestResourceListAcceptsNonSystemBusinessObjectTypeFilter(t *testing.T) {
 }
 
 func TestHandleSelftestReportsDeprecatedEndpoint(t *testing.T) {
-	t.Setenv("RUNTIME_INTERNAL_TOKEN", "test-token")
 	Plugin = testPlugin()
 	req := httptest.NewRequest(http.MethodPost, "/_internal/selftest/storage", nil)
-	req.Header.Set("X-Internal-Token", "test-token")
+	req.Header.Set("X-Internal-Authenticated", "true")
 	rec := httptest.NewRecorder()
 	handleSelftestInternal(rec, req)
 	assertBusinessStatus(t, rec, 1)

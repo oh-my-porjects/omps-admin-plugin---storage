@@ -18,7 +18,6 @@ package main
 
 import (
 	"net/http"
-	"os"
 )
 
 func init() {
@@ -26,9 +25,8 @@ func init() {
 }
 
 func handleSelftestInternal(w http.ResponseWriter, r *http.Request) {
-	// 内部 token 仍然校验，避免没鉴权就告诉外部"这模块叫什么"
-	expect := os.Getenv("RUNTIME_INTERNAL_TOKEN")
-	if expect == "" || r.Header.Get("X-Internal-Token") != expect {
+	// runtime 已校验内部令牌，模块只验证运行时注入的认证标记。
+	if r.Header.Get("X-Internal-Authenticated") != "true" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
