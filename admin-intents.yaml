@@ -1,6 +1,32 @@
 $schema: admin-ui-intent/v1
 module: storage
 
+entities:
+  - key: storage.resource
+    module: storage
+    title: { fallback: 文件资源 }
+    key_field: resource_id
+    fields:
+      - { key: resource_id, type: string }
+      - { key: user_id, type: string }
+      - { key: status, type: string }
+
+relationships:
+  - key: storage.resource.user
+    module: storage
+    source_entity: storage.resource
+    source_field: user_id
+    target_entity: user.user
+    target_key_field: user_id
+    display_fields: [account, nickname]
+    lookup_capability_key: user.endpoint.get_api_admin_user_batch_lookup
+    lookup_input_field: user_ids
+    lookup_items_path: data.items
+    detail_capability_key: user.endpoint.get_api_admin_user_detail
+    lookup_mode: batch
+    cardinality: many-to-one
+    missing_behavior: show_source
+
 pages:
   - key: storage.resource_list
     title: { fallback: 文件资源 }
@@ -15,6 +41,7 @@ pages:
     order: 160
     template: { id: standard-list, version: 1.0.0 }
     size: md
+    entity: storage.resource
     query_capability: storage.endpoint.get_api_storage_admin_resource_list
     pagination: true
     filters:
@@ -47,7 +74,10 @@ pages:
         title: { fallback: 资源 ID }
         min_width: 190
       - field: user_id
-        title: { fallback: 上传用户 ID }
+        title: { fallback: 上传用户 }
+        renderer: relation
+        relation_key: storage.resource.user
+        click_action: storage.resource_list.action.open_user
         min_width: 170
       - field: feature
         title: { fallback: 资源用途 }
@@ -70,101 +100,100 @@ pages:
         title: { fallback: 上传时间 }
         min_width: 150
     actions:
+      - key: storage.resource_list.action.open_user
+        type: open-dialog
+        source: row
+        title: { fallback: 查看用户 }
+        relation_key: storage.resource.user
       - key: storage.resource_list.action.upload
-        type: navigate
+        type: open-dialog
         source: page
         title: { fallback: 上传资源 }
-        target_page_key: storage.resource_upload
+        overlay:
+          type: open-dialog
+          title: { fallback: 上传资源 }
+          template: { id: standard-form, version: 1.0.0 }
+          size: md
+          fields:
+            - binding: files
+              label: { fallback: 图片文件 }
+              control: upload
+              required: true
+            - binding: feature
+              label: { fallback: 资源用途 }
+              control: select
+              required: true
+              options:
+                - value: recharge_voucher
+                  label: { fallback: 充值凭证截图 }
+            - binding: business_object_type
+              label: { fallback: 业务对象类型 }
+              control: select
+              options:
+                - value: recharge_order
+                  label: { fallback: 充值订单 }
+                - value: user_profile
+                  label: { fallback: 用户资料 }
+            - binding: business_object_id
+              label: { fallback: 业务对象 ID }
+              control: input
+          submit_action:
+            key: storage.resource_list.action.upload.submit
+            type: submit
+            source: form
+            title: { fallback: 开始上传 }
+            capability_key: storage.endpoint.post_api_storage_upload
+            confirm:
+              title: { fallback: 确认上传资源 }
+              description: { fallback: 文件将写入当前项目的受控存储，并立即生成可追溯的资源记录。 }
+            bindings:
+              files: { source: form, key: files, required: true }
+              feature: { source: form, key: feature, required: true }
+              business_object_type: { source: form, key: business_object_type }
+              business_object_id: { source: form, key: business_object_id }
+            success_effects:
+              - type: notify
       - key: storage.resource_list.action.detail
-        type: navigate
+        type: open-dialog
         source: row
         title: { fallback: 查看详情 }
-        target_page_key: storage.resource_detail
         bindings:
           resource_id: { source: row, key: resource_id, required: true }
-
-  - key: storage.resource_detail
-    title: { fallback: 文件资源详情 }
-    route: /system/resources/detail
-    menu_hidden: true
-    menu_key: system.resource_detail
-    menu_title: { fallback: 文件资源详情 }
-    order: 161
-    template: { id: standard-detail, version: 1.0.0 }
-    size: md
-    detail_capability: storage.endpoint.get_api_storage_admin_resource_detail
-    fields:
-      - binding: resource_id
-        label: { fallback: 资源 ID }
-      - binding: batch_id
-        label: { fallback: 上传批次 }
-      - binding: user_id
-        label: { fallback: 上传用户 ID }
-      - binding: feature
-        label: { fallback: 资源用途 }
-      - binding: business_object_type
-        label: { fallback: 业务对象类型 }
-      - binding: business_object_id
-        label: { fallback: 业务对象 ID }
-      - binding: public_url
-        label: { fallback: 公网地址 }
-      - binding: status
-        label: { fallback: 状态 }
-      - binding: original_filename
-        label: { fallback: 原始文件名 }
-      - binding: file_size_bytes
-        label: { fallback: 文件大小 }
-      - binding: uploaded_ts
-        label: { fallback: 上传时间 }
-
-  - key: storage.resource_upload
-    title: { fallback: 上传资源 }
-    description: { fallback: 上传后由真实存储服务校验格式并写入资源元数据。 }
-    route: /system/resources/upload
-    menu_hidden: true
-    menu_key: system.resource_upload
-    menu_title: { fallback: 上传资源 }
-    order: 162
-    template: { id: standard-form, version: 1.0.0 }
-    size: md
-    fields:
-      - binding: files
-        label: { fallback: 图片文件 }
-        control: upload
-        required: true
-      - binding: feature
-        label: { fallback: 资源用途 }
-        control: select
-        required: true
-        options:
-          - value: recharge_voucher
-            label: { fallback: 充值凭证截图 }
-      - binding: business_object_type
-        label: { fallback: 业务对象类型 }
-        control: select
-        options:
-          - value: recharge_order
-            label: { fallback: 充值订单 }
-          - value: user_profile
-            label: { fallback: 用户资料 }
-      - binding: business_object_id
-        label: { fallback: 业务对象 ID }
-        control: input
-    actions:
-      - key: storage.resource_upload.action.submit
-        type: submit
-        source: page
-        title: { fallback: 开始上传 }
-        capability_key: storage.endpoint.post_api_storage_upload
-        bindings:
-          files: { source: form, key: files, required: true }
-          feature: { source: form, key: feature, required: true }
-          business_object_type: { source: form, key: business_object_type }
-          business_object_id: { source: form, key: business_object_id }
-        confirm:
-          title: { fallback: 确认上传资源 }
-          description: { fallback: 文件将写入当前项目的受控存储，并立即生成可追溯的资源记录。 }
-        success_effects:
-          - type: notify
-          - type: navigate
-            target: storage.resource_list
+        overlay:
+          type: open-dialog
+          title: { fallback: 文件资源详情 }
+          template: { id: standard-detail, version: 1.0.0 }
+          size: md
+          detail_capability: storage.endpoint.get_api_storage_admin_resource_detail
+          fields:
+            - binding: resource_id
+              label: { fallback: 资源 ID }
+            - binding: batch_id
+              label: { fallback: 上传批次 }
+            - binding: user_id
+              label: { fallback: 上传用户 }
+              renderer: relation
+              relation_key: storage.resource.user
+              click_action: storage.resource_detail.action.open_user
+            - binding: feature
+              label: { fallback: 资源用途 }
+            - binding: business_object_type
+              label: { fallback: 业务对象类型 }
+            - binding: business_object_id
+              label: { fallback: 业务对象 ID }
+            - binding: public_url
+              label: { fallback: 公网地址 }
+            - binding: status
+              label: { fallback: 状态 }
+            - binding: original_filename
+              label: { fallback: 原始文件名 }
+            - binding: file_size_bytes
+              label: { fallback: 文件大小 }
+            - binding: uploaded_ts
+              label: { fallback: 上传时间 }
+          actions:
+            - key: storage.resource_detail.action.open_user
+              type: open-dialog
+              source: row
+              title: { fallback: 查看用户 }
+              relation_key: storage.resource.user
