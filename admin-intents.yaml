@@ -25,7 +25,7 @@ relationships:
     detail_capability_key: user.endpoint.get_api_admin_user_detail
     lookup_mode: batch
     cardinality: many-to-one
-    missing_behavior: show_source
+    missing_behavior: show_error
 
 pages:
   - key: storage.resource_list
